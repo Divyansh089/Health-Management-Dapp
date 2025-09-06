@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './Navbar.css';
+import MetaMaskLogin from './MetamaskLogin';
 
 function Navbar() {
   return (
@@ -12,6 +13,7 @@ function Navbar() {
         <Link to="/doctors" className="nav-link">Doctors</Link>
         <Link to="/marketplace" className="nav-link">Marketplace</Link>
         <Link to="/about" className="nav-link">About</Link>
+        <MetaMaskLogin/>
       </div>
     </nav>
   );
