@@ -1,84 +1,209 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FaUserInjured, FaArrowLeft } from 'react-icons/fa';
 
 function PatientForm() {
-  const [formData, setFormData] = useState({
-    name: '',
-    age: '',
-    gender: '',
-    contact: '',
-    symptoms: '',
-  });
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+  const handleGoBack = () => {
+    navigate('/');
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert('Form Submitted!\n' + JSON.stringify(formData, null, 2));
-    // Here you can later integrate blockchain/IPFS storage
+  const handleRegisterAsPatient = () => {
+    navigate('/register?type=patient');
   };
 
   return (
-    <section style={{ padding: '50px', textAlign: 'center' }}>
-      <h2>Patient Registration</h2>
-      <form onSubmit={handleSubmit} style={{ maxWidth: '400px', margin: '20px auto', textAlign: 'left' }}>
-        <label>Name:</label>
-        <input type="text" name="name" value={formData.name} onChange={handleChange} required style={inputStyle} />
+    <section style={sectionStyle}>
+      <div style={containerStyle}>
+        <div style={headerStyle}>
+          <button onClick={handleGoBack} style={backButtonStyle}>
+            <FaArrowLeft style={{ marginRight: '8px' }} />
+            Back to Home
+          </button>
+          <h2>
+            <FaUserInjured style={{ marginRight: '10px' }} />
+            Patient Portal
+          </h2>
+          <p style={subtitleStyle}>
+            Access your patient dashboard or register as a new patient
+          </p>
+        </div>
 
-        <label>Age:</label>
-        <input type="number" name="age" value={formData.age} onChange={handleChange} required style={inputStyle} />
+        <div style={contentGridStyle}>
+          <div style={infoCardStyle}>
+            <h3>For New Patients</h3>
+            <p>
+              If you're new to ERES, you'll need to register as a patient first. 
+              This will create your secure medical profile on the blockchain.
+            </p>
+            <ul style={featureListStyle}>
+              <li>Secure medical record storage</li>
+              <li>Easy appointment booking</li>
+              <li>Access to verified doctors</li>
+              <li>Medicine purchase tracking</li>
+              <li>Prescription management</li>
+            </ul>
+            <button onClick={handleRegisterAsPatient} style={registerButtonStyle}>
+              Register as Patient
+            </button>
+          </div>
 
-        <label>Gender:</label>
-        <select name="gender" value={formData.gender} onChange={handleChange} required style={inputStyle}>
-          <option value="">Select</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-        </select>
+          <div style={infoCardStyle}>
+            <h3>For Existing Patients</h3>
+            <p>
+              If you're already registered, connect your wallet to access your 
+              patient dashboard and manage your healthcare.
+            </p>
+            <ul style={featureListStyle}>
+              <li>View medical history</li>
+              <li>Book new appointments</li>
+              <li>Check prescriptions</li>
+              <li>Track medicine orders</li>
+              <li>Update personal information</li>
+            </ul>
+            <button onClick={() => navigate('/dashboard')} style={dashboardButtonStyle}>
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
 
-        <label>Contact Number:</label>
-        <input type="text" name="contact" value={formData.contact} onChange={handleChange} required style={inputStyle} />
-
-        <label>Symptoms / Health Issues:</label>
-        <textarea name="symptoms" value={formData.symptoms} onChange={handleChange} required style={textareaStyle}></textarea>
-
-        <button type="submit" style={buttonStyle}>Submit</button>
-      </form>
+        <div style={helpSectionStyle}>
+          <h3>Need Help?</h3>
+          <div style={helpGridStyle}>
+            <div style={helpItemStyle}>
+              <h4>Registration Process</h4>
+              <p>
+                You'll need to provide personal information, medical history, 
+                and select a doctor. A small registration fee is required.
+              </p>
+            </div>
+            <div style={helpItemStyle}>
+              <h4>Wallet Connection</h4>
+              <p>
+                Connect your MetaMask wallet to access the platform. 
+                Make sure you have some ETH for transaction fees.
+              </p>
+            </div>
+            <div style={helpItemStyle}>
+              <h4>Data Security</h4>
+              <p>
+                Your medical data is stored securely on the blockchain 
+                and IPFS, ensuring privacy and immutability.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
 
-const inputStyle = {
-  width: '100%',
-  padding: '10px',
-  margin: '5px 0 15px 0',
-  borderRadius: '5px',
-  border: '1px solid #ccc',
+// Styles
+const sectionStyle = {
+  padding: '50px 20px',
+  backgroundColor: '#f8f9fa',
+  minHeight: '100vh'
 };
 
-const textareaStyle = {
-  width: '100%',
-  padding: '10px',
-  margin: '5px 0 15px 0',
-  borderRadius: '5px',
-  border: '1px solid #ccc',
-  minHeight: '80px',
+const containerStyle = {
+  maxWidth: '1000px',
+  margin: '0 auto'
 };
 
-const buttonStyle = {
-  width: '100%',
-  padding: '10px',
+const headerStyle = {
+  textAlign: 'center',
+  marginBottom: '40px'
+};
+
+const backButtonStyle = {
+  backgroundColor: '#6c757d',
+  color: 'white',
+  border: 'none',
+  padding: '10px 20px',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  marginBottom: '20px',
+  fontSize: '14px'
+};
+
+const subtitleStyle = {
+  fontSize: '16px',
+  color: '#666',
+  marginTop: '10px'
+};
+
+const contentGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+  gap: '30px',
+  marginBottom: '40px'
+};
+
+const infoCardStyle = {
+  backgroundColor: 'white',
+  padding: '30px',
+  borderRadius: '12px',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+  textAlign: 'center'
+};
+
+const featureListStyle = {
+  listStyleType: 'disc',
+  textAlign: 'left',
+  margin: '20px 0',
+  paddingLeft: '20px'
+};
+
+const registerButtonStyle = {
   backgroundColor: '#007bff',
   color: 'white',
   border: 'none',
-  borderRadius: '5px',
+  padding: '12px 30px',
+  borderRadius: '8px',
+  fontSize: '16px',
   fontWeight: 'bold',
   cursor: 'pointer',
+  marginTop: '20px',
+  transition: 'background-color 0.3s ease'
+};
+
+const dashboardButtonStyle = {
+  backgroundColor: '#28a745',
+  color: 'white',
+  border: 'none',
+  padding: '12px 30px',
+  borderRadius: '8px',
+  fontSize: '16px',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  marginTop: '20px',
+  transition: 'background-color 0.3s ease'
+};
+
+const helpSectionStyle = {
+  backgroundColor: 'white',
+  padding: '30px',
+  borderRadius: '12px',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+  textAlign: 'center'
+};
+
+const helpGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+  gap: '20px',
+  marginTop: '20px'
+};
+
+const helpItemStyle = {
+  backgroundColor: '#f8f9fa',
+  padding: '20px',
+  borderRadius: '8px',
+  border: '1px solid #dee2e6',
+  textAlign: 'left'
 };
 
 export default PatientForm;

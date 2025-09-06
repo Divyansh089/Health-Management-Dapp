@@ -1,8 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useStateContext } from '../../Context/index';
 
 function Home() {
   const navigate = useNavigate();
+  const { address, CONNECT_WALLET, loader } = useStateContext();
+
+  useEffect(() => {
+    if (address) {
+      navigate('/dashboard');
+    }
+  }, [address, navigate]);
+
+  const handleConnectWallet = async () => {
+    await CONNECT_WALLET();
+  };
 
   return (
     <section 
@@ -20,22 +32,37 @@ function Home() {
       </p>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
-        <button onClick={() => navigate('/patient')} style={buttonStyle}>Patient</button>
-        <button onClick={() => navigate('/doctors')} style={buttonStyle}>Doctors</button>
-        <button onClick={() => navigate('/marketplace')} style={buttonStyle}>Marketplace</button>
+        <button onClick={handleConnectWallet} style={buttonStyle} disabled={loader}>
+          {loader ? 'Connecting...' : 'Connect Wallet & Get Started'}
+        </button>
+        <button onClick={() => navigate('/about')} style={secondaryButtonStyle}>Learn More</button>
       </div>
     </section>
   );
 }
 
 const buttonStyle = {
-  padding: '10px 20px',
+  padding: '15px 30px',
   backgroundColor: '#007bff',
   color: 'white',
   border: 'none',
-  borderRadius: '5px',
+  borderRadius: '8px',
   fontWeight: 'bold',
   cursor: 'pointer',
+  fontSize: '16px',
+  transition: 'background-color 0.3s ease'
+};
+
+const secondaryButtonStyle = {
+  padding: '15px 30px',
+  backgroundColor: 'transparent',
+  color: '#007bff',
+  border: '2px solid #007bff',
+  borderRadius: '8px',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  fontSize: '16px',
+  transition: 'all 0.3s ease'
 };
 
 export default Home;
