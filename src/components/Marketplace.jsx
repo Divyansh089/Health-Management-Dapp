@@ -5,6 +5,11 @@ function Marketplace() {
     { name: 'Paracetamol', price: '₹50' },
     { name: 'Ibuprofen', price: '₹80' },
     { name: 'Amoxicillin', price: '₹120' },
+    { name: 'Cetirizine', price: '₹40' },
+    { name: 'Azithromycin', price: '₹150' },
+    { name: 'Vitamin C', price: '₹60' },
+    { name: 'Metformin', price: '₹90' },
+    { name: 'Omeprazole', price: '₹70' },
   ];
 
   return (
