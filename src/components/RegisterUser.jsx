@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useStateContext } from '../../Context/index.jsx';
-import { UPLOAD_IPFS_IMAGE } from '../../Context/constants';
+import { UPLOAD_IPFS_IMAGE } from '../../Context/constants.jsx';
 import { FaUserMd, FaUserInjured, FaUpload, FaSpinner } from 'react-icons/fa';
 import '../styles/RegisterUser.css';
 
