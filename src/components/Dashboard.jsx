@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useStateContext } from '../../Context/index';
+import { useStateContext } from '../../Context/index.jsx';
 import { 
   CHECK_DOCTOR_REGISTERATION, 
   CHECK_PATIENT_REGISTERATION, 

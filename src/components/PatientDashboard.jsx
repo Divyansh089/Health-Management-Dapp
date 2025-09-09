@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useStateContext } from '../../Context/index';
+import { useStateContext } from '../../Context/index.jsx';
 import { 
   GET_PATIENT_DETAILS, 
   GET_PATIENT_APPOINTMENT_HISTORYS, 

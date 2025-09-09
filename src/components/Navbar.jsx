@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useStateContext } from '../../Context/index';
+import { useStateContext } from '../../Context/index.jsx';
 import { SHORTEN_ADDRESS } from '../../Context/constants';
 import { FaWallet, FaUser, FaSignOutAlt } from 'react-icons/fa';
 import '../styles/Navbar.css';

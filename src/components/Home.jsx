@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStateContext } from '../../Context/index';
+import { Typewriter } from "react-simple-typewriter";
+import { useStateContext } from "../../Context/index.jsx";
 import '../styles/Home.css';
 
 function Home() {

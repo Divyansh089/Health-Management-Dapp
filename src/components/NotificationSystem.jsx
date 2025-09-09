@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useStateContext } from '../../Context/index';
+import { useStateContext } from '../../Context/index.jsx';
 import { GET_NOTIFICATION } from '../../Context/constants';
 import { FaBell, FaCheck, FaTimes, FaInfoCircle, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
 import '../styles/NotificationSystem.css';

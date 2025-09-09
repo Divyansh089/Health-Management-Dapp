@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { StateContextProvider } from '../Context/index';
+import { StateContextProvider } from '../Context/index.jsx';
 import Navbar from './components/Navbar';
 import Home from './components/Home';
 import About from './components/About';
