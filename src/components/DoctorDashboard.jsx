@@ -6,7 +6,7 @@ import {
   GET_DOCTOR_APPOINTMENTS_HISTORYS,
   GET_ALL_REGISTERED_MEDICINES,
   GET_ALL_REGISTERED_PATIENTS
-} from '../../Context/constants';
+} from '../../Context/constants.jsx';
 import { 
   FaUserMd, 
   FaCalendarAlt, 
