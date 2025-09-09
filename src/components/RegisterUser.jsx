@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useStateContext } from '../../Context/index';
 import { UPLOAD_IPFS_IMAGE } from '../../Context/constants';
 import { FaUserMd, FaUserInjured, FaUpload, FaSpinner } from 'react-icons/fa';
+import '../styles/RegisterUser.css';
 
 const RegisterUser = () => {
   const [searchParams] = useSearchParams();

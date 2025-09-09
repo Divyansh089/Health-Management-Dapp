@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useStateContext } from '../../Context/index';
 import { SHORTEN_ADDRESS } from '../../Context/constants';
 import { FaWallet, FaUser, FaSignOutAlt } from 'react-icons/fa';
-import './Navbar.css';
+import '../styles/Navbar.css';
 
 function Navbar() {
   const { address, CONNECT_WALLET, loader } = useStateContext();

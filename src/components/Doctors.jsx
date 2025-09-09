@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStateContext } from '../../Context/index';
+import '../styles/Doctors.css';
 import { GET_ALL_APPROVE_DOCTORS } from '../../Context/constants';
 import { FaUserMd, FaEnvelope, FaPhone, FaMapMarkerAlt, FaGraduationCap } from 'react-icons/fa';
 
@@ -234,17 +235,6 @@ const statLabelStyle = {
 
 const biographyStyle = {
   marginBottom: '20px'
-};
-
-const biographyStyle h4 = {
-  marginBottom: '10px',
-  color: '#333'
-};
-
-const biographyStyle p = {
-  fontSize: '14px',
-  lineHeight: '1.6',
-  color: '#666'
 };
 
 const bookButtonStyle = {

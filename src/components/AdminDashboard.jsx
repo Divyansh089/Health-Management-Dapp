@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStateContext } from '../../Context/index';
+import '../styles/AdminDashboard.css';
 import { 
   GET_ALL_REGISTERED_DOCTORS,
   GET_ALL_REGISTERED_PATIENTS,
@@ -110,82 +111,83 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div style={loadingStyle}>
-        <FaSpinner className="fa-spin" style={{ fontSize: '48px', marginBottom: '20px' }} />
-        <div>Loading admin dashboard...</div>
+      <div className="admindashboard-loading">
+        <FaSpinner className="fa-spin admindashboard-spinner" />
+        <div className="admindashboard-loadingText">Loading admin dashboard...</div>
       </div>
     );
   }
 
   return (
-    <div style={containerStyle}>
-      <div style={headerStyle}>
-        <h1>
-          <FaUserShield style={{ marginRight: '10px' }} />
-          Admin Dashboard
-        </h1>
-        <p>Manage the ERES Health Management System</p>
-      </div>
+    <div className="admindashboard-section">
+      <div className="admindashboard-container">
+        <div className="admindashboard-header">
+          <h1 className="admindashboard-title">
+            <FaUserShield style={{ marginRight: '10px' }} />
+            Admin Dashboard
+          </h1>
+          <p className="admindashboard-subtitle">Manage the ERES Health Management System</p>
+        </div>
 
-      <div style={tabsStyle}>
-        <button 
-          onClick={() => setActiveTab('overview')}
-          style={activeTab === 'overview' ? activeTabStyle : tabStyle}
-        >
-          Overview
-        </button>
-        <button 
-          onClick={() => setActiveTab('doctors')}
-          style={activeTab === 'doctors' ? activeTabStyle : tabStyle}
-        >
-          <FaUserMd style={{ marginRight: '8px' }} />
-          Doctors
-        </button>
-        <button 
-          onClick={() => setActiveTab('patients')}
-          style={activeTab === 'patients' ? activeTabStyle : tabStyle}
-        >
-          <FaUserInjured style={{ marginRight: '8px' }} />
-          Patients
-        </button>
-        <button 
-          onClick={() => setActiveTab('medicines')}
-          style={activeTab === 'medicines' ? activeTabStyle : tabStyle}
-        >
-          <FaPills style={{ marginRight: '8px' }} />
-          Medicines
-        </button>
-        <button 
-          onClick={() => setActiveTab('appointments')}
-          style={activeTab === 'appointments' ? activeTabStyle : tabStyle}
-        >
-          <FaCalendarAlt style={{ marginRight: '8px' }} />
-          Appointments
-        </button>
-        <button 
-          onClick={() => setActiveTab('settings')}
-          style={activeTab === 'settings' ? activeTabStyle : tabStyle}
-        >
-          <FaEdit style={{ marginRight: '8px' }} />
-          Settings
-        </button>
-        <button 
-          onClick={() => setActiveTab('chat')}
-          style={activeTab === 'chat' ? activeTabStyle : tabStyle}
-        >
-          <FaComments style={{ marginRight: '8px' }} />
-          Chat
-        </button>
-        <button 
-          onClick={() => setActiveTab('notifications')}
-          style={activeTab === 'notifications' ? activeTabStyle : tabStyle}
-        >
-          <FaBell style={{ marginRight: '8px' }} />
-          Notifications
-        </button>
-      </div>
+        <div className="admindashboard-tabs">
+          <button 
+            onClick={() => setActiveTab('overview')}
+            className={`admindashboard-tab ${activeTab === 'overview' ? 'active' : ''}`}
+          >
+            Overview
+          </button>
+          <button 
+            onClick={() => setActiveTab('doctors')}
+            className={`admindashboard-tab ${activeTab === 'doctors' ? 'active' : ''}`}
+          >
+            <FaUserMd style={{ marginRight: '8px' }} />
+            Doctors
+          </button>
+          <button 
+            onClick={() => setActiveTab('patients')}
+            className={`admindashboard-tab ${activeTab === 'patients' ? 'active' : ''}`}
+          >
+            <FaUserInjured style={{ marginRight: '8px' }} />
+            Patients
+          </button>
+          <button 
+            onClick={() => setActiveTab('medicines')}
+            className={`admindashboard-tab ${activeTab === 'medicines' ? 'active' : ''}`}
+          >
+            <FaPills style={{ marginRight: '8px' }} />
+            Medicines
+          </button>
+          <button 
+            onClick={() => setActiveTab('appointments')}
+            className={`admindashboard-tab ${activeTab === 'appointments' ? 'active' : ''}`}
+          >
+            <FaCalendarAlt style={{ marginRight: '8px' }} />
+            Appointments
+          </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`admindashboard-tab ${activeTab === 'settings' ? 'active' : ''}`}
+          >
+            <FaEdit style={{ marginRight: '8px' }} />
+            Settings
+          </button>
+          <button 
+            onClick={() => setActiveTab('chat')}
+            className={`admindashboard-tab ${activeTab === 'chat' ? 'active' : ''}`}
+          >
+            <FaComments style={{ marginRight: '8px' }} />
+            Chat
+          </button>
+          <button 
+            onClick={() => setActiveTab('notifications')}
+            className={`admindashboard-tab ${activeTab === 'notifications' ? 'active' : ''}`}
+          >
+            <FaBell style={{ marginRight: '8px' }} />
+            Notifications
+          </button>
+        </div>
 
-      <div style={contentStyle}>
+        <div className="admindashboard-content">
         {activeTab === 'overview' && (
           <OverviewTab 
             doctors={doctors}
@@ -224,12 +226,12 @@ const AdminDashboard = () => {
         )}
         
         {activeTab === 'chat' && (
-          <div style={tabContentStyle}>
+          <div>
             <h2>Chat System</h2>
             <p>Access the chat system to communicate with users and manage communications.</p>
             <button 
               onClick={() => window.location.href = '/chat'}
-              style={primaryButtonStyle}
+              className="admindashboard-updateBtn"
             >
               Open Chat System
             </button>
@@ -237,17 +239,18 @@ const AdminDashboard = () => {
         )}
         
         {activeTab === 'notifications' && (
-          <div style={tabContentStyle}>
+          <div>
             <h2>Notifications</h2>
             <p>View system notifications and manage user communications.</p>
             <button 
               onClick={() => window.location.href = '/notifications'}
-              style={primaryButtonStyle}
+              className="admindashboard-updateBtn"
             >
               View Notifications
             </button>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
@@ -615,52 +618,7 @@ const SettingsTab = ({ fees, onUpdateFee, onUpdateAdminAddress }) => {
 };
 
 // Styles
-const containerStyle = {
-  minHeight: '100vh',
-  backgroundColor: '#f8f9fa',
-  padding: '20px'
-};
 
-const headerStyle = {
-  backgroundColor: 'white',
-  borderRadius: '12px',
-  padding: '30px',
-  marginBottom: '20px',
-  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-  textAlign: 'center'
-};
-
-const tabsStyle = {
-  display: 'flex',
-  gap: '10px',
-  marginBottom: '20px',
-  flexWrap: 'wrap'
-};
-
-const tabStyle = {
-  padding: '12px 24px',
-  backgroundColor: 'white',
-  border: 'none',
-  borderRadius: '8px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  fontWeight: 'bold',
-  transition: 'all 0.3s ease'
-};
-
-const activeTabStyle = {
-  ...tabStyle,
-  backgroundColor: '#007bff',
-  color: 'white'
-};
-
-const contentStyle = {
-  backgroundColor: 'white',
-  borderRadius: '12px',
-  padding: '30px',
-  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-};
 
 const tabContentStyle = {
   display: 'flex',
@@ -868,14 +826,7 @@ const appointmentHeaderStyle = {
   marginBottom: '15px'
 };
 
-const appointmentStatusStyle = (isOpen) => ({
-  padding: '4px 12px',
-  borderRadius: '20px',
-  fontSize: '12px',
-  fontWeight: 'bold',
-  backgroundColor: isOpen ? '#28a745' : '#6c757d',
-  color: 'white'
-});
+
 
 const appointmentDetailsStyle = {
   display: 'grid',
@@ -982,13 +933,6 @@ const buttonGroupStyle = {
   marginTop: '20px'
 };
 
-const loadingStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: '50vh',
-  fontSize: '18px'
-};
+
 
 export default AdminDashboard;

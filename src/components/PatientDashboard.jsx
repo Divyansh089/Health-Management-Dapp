@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useStateContext } from '../../Context/index';
 import { 
@@ -8,6 +9,7 @@ import {
   GET_ALL_REGISTERED_MEDICINES
 } from '../../Context/constants';
 import { FaCalendarAlt, FaPills, FaShoppingCart, FaUser, FaHistory, FaPlus, FaComments, FaBell } from 'react-icons/fa';
+import '../styles/PatientDashboard.css';
 
 const PatientDashboard = () => {
   const { address, BUY_MEDICINE, BOOK_APPOINTMENT, GET_ALL_APPROVE_DOCTORS } = useStateContext();
@@ -82,7 +84,7 @@ const PatientDashboard = () => {
 
   if (loading) {
     return (
-      <div style={loadingStyle}>
+      <div className="patientdashboard-loading">
         <div>Loading your dashboard...</div>
       </div>
     );
@@ -90,18 +92,18 @@ const PatientDashboard = () => {
 
   if (!patientData) {
     return (
-      <div style={errorStyle}>
+      <div className="patientdashboard-error">
         <div>Error loading patient data. Please try again.</div>
       </div>
     );
   }
 
   return (
-    <div style={containerStyle}>
-      <div style={headerStyle}>
+    <div className="patientdashboard-container">
+      <div className="patientdashboard-header">
         <h1>Patient Dashboard</h1>
-        <div style={patientInfoStyle}>
-          <img src={patientData.image} alt="Profile" style={profileImageStyle} />
+        <div className="patientdashboard-patientInfo">
+          <img src={patientData.image} alt="Profile" className="patientdashboard-profileImage" />
           <div>
             <h2>{patientData.title} {patientData.firstName} {patientData.lastName}</h2>
             <p>Patient ID: {patientData.patientID}</p>
@@ -110,59 +112,59 @@ const PatientDashboard = () => {
         </div>
       </div>
 
-      <div style={tabsStyle}>
+      <div className="patientdashboard-tabs">
         <button 
           onClick={() => setActiveTab('overview')}
-          style={activeTab === 'overview' ? activeTabStyle : tabStyle}
+          className={activeTab === 'overview' ? 'patientdashboard-activeTab' : 'patientdashboard-tab'}
         >
           <FaUser style={{ marginRight: '8px' }} />
           Overview
         </button>
         <button 
           onClick={() => setActiveTab('appointments')}
-          style={activeTab === 'appointments' ? activeTabStyle : tabStyle}
+          className={activeTab === 'appointments' ? 'patientdashboard-activeTab' : 'patientdashboard-tab'}
         >
           <FaCalendarAlt style={{ marginRight: '8px' }} />
           Appointments
         </button>
         <button 
           onClick={() => setActiveTab('prescriptions')}
-          style={activeTab === 'prescriptions' ? activeTabStyle : tabStyle}
+          className={activeTab === 'prescriptions' ? 'patientdashboard-activeTab' : 'patientdashboard-tab'}
         >
           <FaPills style={{ marginRight: '8px' }} />
           Prescriptions
         </button>
         <button 
           onClick={() => setActiveTab('orders')}
-          style={activeTab === 'orders' ? activeTabStyle : tabStyle}
+          className={activeTab === 'orders' ? 'patientdashboard-activeTab' : 'patientdashboard-tab'}
         >
           <FaHistory style={{ marginRight: '8px' }} />
           Orders
         </button>
         <button 
           onClick={() => setActiveTab('marketplace')}
-          style={activeTab === 'marketplace' ? activeTabStyle : tabStyle}
+          className={activeTab === 'marketplace' ? 'patientdashboard-activeTab' : 'patientdashboard-tab'}
         >
           <FaShoppingCart style={{ marginRight: '8px' }} />
           Marketplace
         </button>
         <button 
           onClick={() => setActiveTab('chat')}
-          style={activeTab === 'chat' ? activeTabStyle : tabStyle}
+          className={activeTab === 'chat' ? 'patientdashboard-activeTab' : 'patientdashboard-tab'}
         >
           <FaComments style={{ marginRight: '8px' }} />
           Chat
         </button>
         <button 
           onClick={() => setActiveTab('notifications')}
-          style={activeTab === 'notifications' ? activeTabStyle : tabStyle}
+          className={activeTab === 'notifications' ? 'patientdashboard-activeTab' : 'patientdashboard-tab'}
         >
           <FaBell style={{ marginRight: '8px' }} />
           Notifications
         </button>
       </div>
 
-      <div style={contentStyle}>
+      <div className="patientdashboard-content">
         {activeTab === 'overview' && (
           <OverviewTab 
             patientData={patientData}
@@ -196,12 +198,12 @@ const PatientDashboard = () => {
         )}
         
         {activeTab === 'chat' && (
-          <div style={tabContentStyle}>
+          <div className="patientdashboard-tabContent">
             <h2>Chat System</h2>
             <p>Access the chat system to communicate with doctors and other users.</p>
             <button 
               onClick={() => window.location.href = '/chat'}
-              style={primaryButtonStyle}
+              className="patientdashboard-primaryButton"
             >
               Open Chat System
             </button>
@@ -209,12 +211,12 @@ const PatientDashboard = () => {
         )}
         
         {activeTab === 'notifications' && (
-          <div style={tabContentStyle}>
+          <div className="patientdashboard-tabContent">
             <h2>Notifications</h2>
             <p>View your notifications and stay updated with important information.</p>
             <button 
               onClick={() => window.location.href = '/notifications'}
-              style={primaryButtonStyle}
+              className="patientdashboard-primaryButton"
             >
               View Notifications
             </button>
@@ -509,352 +511,6 @@ const MarketplaceTab = ({ medicines, onBuyMedicine }) => {
   );
 };
 
-// Styles
-const containerStyle = {
-  minHeight: '100vh',
-  backgroundColor: '#f8f9fa',
-  padding: '20px'
-};
-
-const headerStyle = {
-  backgroundColor: 'white',
-  borderRadius: '12px',
-  padding: '30px',
-  marginBottom: '20px',
-  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-};
-
-const patientInfoStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '20px',
-  marginTop: '20px'
-};
-
-const profileImageStyle = {
-  width: '80px',
-  height: '80px',
-  borderRadius: '50%',
-  objectFit: 'cover'
-};
-
-const tabsStyle = {
-  display: 'flex',
-  gap: '10px',
-  marginBottom: '20px',
-  flexWrap: 'wrap'
-};
-
-const tabStyle = {
-  padding: '12px 24px',
-  backgroundColor: 'white',
-  border: 'none',
-  borderRadius: '8px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  fontWeight: 'bold',
-  transition: 'all 0.3s ease'
-};
-
-const activeTabStyle = {
-  ...tabStyle,
-  backgroundColor: '#007bff',
-  color: 'white'
-};
-
-const contentStyle = {
-  backgroundColor: 'white',
-  borderRadius: '12px',
-  padding: '30px',
-  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-};
-
-const tabContentStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '20px'
-};
-
-const statsGridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '20px',
-  marginBottom: '30px'
-};
-
-const statCardStyle = {
-  backgroundColor: '#f8f9fa',
-  padding: '20px',
-  borderRadius: '8px',
-  textAlign: 'center',
-  border: '1px solid #dee2e6'
-};
-
-const statNumberStyle = {
-  fontSize: '32px',
-  fontWeight: 'bold',
-  color: '#007bff',
-  margin: '10px 0'
-};
-
-const infoSectionStyle = {
-  backgroundColor: '#f8f9fa',
-  padding: '20px',
-  borderRadius: '8px',
-  border: '1px solid #dee2e6'
-};
-
-const infoGridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-  gap: '10px',
-  marginTop: '15px'
-};
-
-const sectionHeaderStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '20px'
-};
-
-const primaryButtonStyle = {
-  backgroundColor: '#007bff',
-  color: 'white',
-  border: 'none',
-  padding: '10px 20px',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  fontWeight: 'bold'
-};
-
-const secondaryButtonStyle = {
-  backgroundColor: '#6c757d',
-  color: 'white',
-  border: 'none',
-  padding: '10px 20px',
-  borderRadius: '6px',
-  cursor: 'pointer'
-};
-
-const modalStyle = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 1000
-};
-
-const modalContentStyle = {
-  backgroundColor: 'white',
-  padding: '30px',
-  borderRadius: '12px',
-  maxWidth: '500px',
-  width: '90%',
-  maxHeight: '80vh',
-  overflowY: 'auto'
-};
-
-const formGroupStyle = {
-  marginBottom: '15px'
-};
-
-const formRowStyle = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: '15px'
-};
-
-const buttonGroupStyle = {
-  display: 'flex',
-  gap: '10px',
-  justifyContent: 'flex-end',
-  marginTop: '20px'
-};
-
-const appointmentsListStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '15px'
-};
-
-const appointmentCardStyle = {
-  border: '1px solid #dee2e6',
-  borderRadius: '8px',
-  padding: '20px',
-  backgroundColor: '#f8f9fa'
-};
-
-const appointmentHeaderStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '15px'
-};
-
-const appointmentStatusStyle = (isOpen) => ({
-  padding: '4px 12px',
-  borderRadius: '20px',
-  fontSize: '12px',
-  fontWeight: 'bold',
-  backgroundColor: isOpen ? '#28a745' : '#6c757d',
-  color: 'white'
-});
-
-const appointmentDetailsStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '10px'
-};
-
-const prescriptionsListStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '15px'
-};
-
-const prescriptionCardStyle = {
-  border: '1px solid #dee2e6',
-  borderRadius: '8px',
-  padding: '20px',
-  backgroundColor: '#f8f9fa'
-};
-
-const prescriptionHeaderStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '15px'
-};
-
-const prescriptionDateStyle = {
-  color: '#6c757d',
-  fontSize: '14px'
-};
-
-const prescriptionDetailsStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '10px'
-};
-
-const ordersListStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '15px'
-};
-
-const orderCardStyle = {
-  border: '1px solid #dee2e6',
-  borderRadius: '8px',
-  padding: '20px',
-  backgroundColor: '#f8f9fa'
-};
-
-const orderHeaderStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '15px'
-};
-
-const orderDateStyle = {
-  color: '#6c757d',
-  fontSize: '14px'
-};
-
-const orderDetailsStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '10px'
-};
-
-const medicinesGridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-  gap: '20px'
-};
-
-const medicineCardStyle = {
-  border: '1px solid #dee2e6',
-  borderRadius: '8px',
-  padding: '20px',
-  backgroundColor: '#f8f9fa',
-  display: 'flex',
-  flexDirection: 'column'
-};
-
-const medicineImageStyle = {
-  width: '100%',
-  height: '200px',
-  objectFit: 'cover',
-  borderRadius: '8px',
-  marginBottom: '15px'
-};
-
-const medicineInfoStyle = {
-  flex: 1,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '8px'
-};
-
-const purchaseSectionStyle = {
-  marginTop: '15px',
-  padding: '15px',
-  backgroundColor: 'white',
-  borderRadius: '6px',
-  border: '1px solid #dee2e6'
-};
-
-const quantitySectionStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  marginBottom: '10px'
-};
-
-const quantityInputStyle = {
-  width: '80px',
-  padding: '5px',
-  border: '1px solid #dee2e6',
-  borderRadius: '4px'
-};
-
-const buyButtonStyle = {
-  width: '100%',
-  backgroundColor: '#28a745',
-  color: 'white',
-  border: 'none',
-  padding: '10px',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontWeight: 'bold'
-};
-
-const loadingStyle = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: '50vh',
-  fontSize: '18px'
-};
-
-const errorStyle = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: '50vh',
-  fontSize: '18px',
-  color: '#dc3545'
-};
+// Styles - moved to PatientDashboard.css
 
 export default PatientDashboard;

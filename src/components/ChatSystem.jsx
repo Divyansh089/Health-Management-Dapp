@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStateContext } from '../../Context/index';
+import '../styles/ChatSystem.css';
 import { 
   GET_MY_FRIEND_LIST, 
   GET_READ_MESSAGE, 

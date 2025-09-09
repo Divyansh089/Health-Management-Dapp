@@ -1,13 +1,9 @@
 import React from 'react';
+import '../styles/Footer.css';
 
 function Footer() {
   return (
-    <footer style={{ 
-      padding: '20px', 
-      textAlign: 'center', 
-      backgroundColor: '#007bff', 
-      color: 'white' 
-    }}>
+    <footer className="footer">
       <p>© 2025 ERES. All rights reserved.</p>
     </footer>
   );

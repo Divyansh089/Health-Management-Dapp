@@ -1,0 +1,50 @@
+/* Styles for Home component */
+
+.home-section {
+  padding: 150px 20px;
+  text-align: center;
+  background-color: #e6f2ff;
+  min-height: 80vh;
+}
+
+.home-title {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.home-description {
+  font-size: 20px;
+  max-width: 600px;
+  margin: 0 auto 40px;
+}
+
+.home-buttonContainer {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.home-primaryButton {
+  padding: 15px 30px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.home-secondaryButton {
+  padding: 15px 30px;
+  background-color: transparent;
+  color: #007bff;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}

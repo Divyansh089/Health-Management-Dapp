@@ -1,0 +1,496 @@
+/* AdminDashboard.css */
+
+.admindashboard-section {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.admindashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.admindashboard-header {
+  text-align: center;
+  margin-bottom: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 40px 20px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.admindashboard-title {
+  font-size: 36px;
+  font-weight: bold;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.admindashboard-subtitle {
+  font-size: 18px;
+  margin-top: 10px;
+  opacity: 0.9;
+}
+
+.admindashboard-tabs {
+  display: flex;
+  background-color: white;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.admindashboard-tab {
+  flex: 1;
+  padding: 15px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.admindashboard-tab:hover {
+  background-color: #f8f9fa;
+  color: #007bff;
+}
+
+.admindashboard-tab.active {
+  color: #007bff;
+  background-color: #e3f2fd;
+  border-bottom-color: #007bff;
+}
+
+.admindashboard-content {
+  background-color: white;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.admindashboard-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admindashboard-spinner {
+  font-size: 48px;
+  color: #007bff;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.admindashboard-loadingText {
+  font-size: 18px;
+  color: #666;
+}
+
+.admindashboard-overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.admindashboard-statCard {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 25px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.admindashboard-statCard:hover {
+  transform: translateY(-5px);
+}
+
+.admindashboard-statIcon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.admindashboard-statNumber {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.admindashboard-statLabel {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.admindashboard-feeSettings {
+  background-color: #f8f9fa;
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+}
+
+.admindashboard-feeTitle {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.admindashboard-feeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.admindashboard-feeCard {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.admindashboard-feeLabel {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.admindashboard-feeValue {
+  font-size: 18px;
+  color: #007bff;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.admindashboard-feeInputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.admindashboard-feeInput {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.admindashboard-updateBtn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.admindashboard-updateBtn:hover {
+  background-color: #0056b3;
+}
+
+.admindashboard-updateBtn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.admindashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admindashboard-table th {
+  background-color: #007bff;
+  color: white;
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.admindashboard-table td {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.admindashboard-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admindashboard-table tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.admindashboard-statusBadge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.admindashboard-statusBadge.approved {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.admindashboard-statusBadge.pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.admindashboard-statusBadge.rejected {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.admindashboard-actionBtns {
+  display: flex;
+  gap: 8px;
+}
+
+.admindashboard-actionBtn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.admindashboard-approveBtn {
+  background-color: #28a745;
+  color: white;
+}
+
+.admindashboard-approveBtn:hover {
+  background-color: #218838;
+}
+
+.admindashboard-rejectBtn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.admindashboard-rejectBtn:hover {
+  background-color: #c82333;
+}
+
+.admindashboard-editBtn {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.admindashboard-editBtn:hover {
+  background-color: #e0a800;
+}
+
+.admindashboard-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.admindashboard-modalContent {
+  background-color: white;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.admindashboard-modalTitle {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.admindashboard-modalBody {
+  margin-bottom: 20px;
+}
+
+.admindashboard-modalFooter {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.admindashboard-modalBtn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.admindashboard-modalBtn.primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.admindashboard-modalBtn.primary:hover {
+  background-color: #0056b3;
+}
+
+.admindashboard-modalBtn.secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.admindashboard-modalBtn.secondary:hover {
+  background-color: #545b62;
+}
+
+.admindashboard-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.admindashboard-success {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.admindashboard-noData {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 18px;
+}
+
+.admindashboard-searchBar {
+  margin-bottom: 20px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  width: 100%;
+  font-size: 16px;
+}
+
+.admindashboard-filterBtns {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.admindashboard-filterBtn {
+  padding: 8px 16px;
+  border: 1px solid #007bff;
+  background-color: transparent;
+  color: #007bff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.admindashboard-filterBtn:hover,
+.admindashboard-filterBtn.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.admindashboard-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.admindashboard-pageBtn {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  background-color: white;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.admindashboard-pageBtn:hover,
+.admindashboard-pageBtn.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.admindashboard-pageBtn:disabled {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+  border-color: #dee2e6;
+}
+
+@media (max-width: 768px) {
+  .admindashboard-tabs {
+    flex-direction: column;
+  }
+  
+  .admindashboard-overviewGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .admindashboard-feeGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .admindashboard-table {
+    font-size: 14px;
+  }
+  
+  .admindashboard-table th,
+  .admindashboard-table td {
+    padding: 10px;
+  }
+  
+  .admindashboard-actionBtns {
+    flex-direction: column;
+  }
+  
+  .admindashboard-filterBtns {
+    justify-content: center;
+  }
+  
+  .admindashboard-pagination {
+    flex-wrap: wrap;
+  }
+}

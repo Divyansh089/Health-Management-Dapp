@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useStateContext } from '../../Context/index';
+import '../styles/DoctorDashboard.css';
 import { 
   GET_DOCTOR_DETAILS, 
   GET_DOCTOR_APPOINTMENTS_HISTORYS,

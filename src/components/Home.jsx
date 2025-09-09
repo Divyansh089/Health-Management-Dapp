@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStateContext } from '../../Context/index';
+import '../styles/Home.css';
 
 function Home() {
   const navigate = useNavigate();
@@ -17,52 +18,21 @@ function Home() {
   };
 
   return (
-    <section 
-      style={{ 
-        padding: '150px 20px', 
-        textAlign: 'center', 
-        backgroundColor: '#e6f2ff', 
-        minHeight: '80vh' 
-      }}
-    >
-      <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Welcome to ERES</h1>
-      <p style={{ fontSize: '20px', maxWidth: '600px', margin: '0 auto 40px' }}>
+    <section className="home-section">
+      <h1 className="home-title">Welcome to ERES</h1>
+      <p className="home-description">
         ERES is a Decentralized Healthcare Management System that secures patient records, verifies doctors, 
         and provides a safe medicine marketplace using blockchain and IPFS technology.
       </p>
       
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
-        <button onClick={handleConnectWallet} style={buttonStyle} disabled={loader}>
+      <div className="home-buttonContainer">
+        <button onClick={handleConnectWallet} className="home-primaryButton" disabled={loader}>
           {loader ? 'Connecting...' : 'Connect Wallet & Get Started'}
         </button>
-        <button onClick={() => navigate('/about')} style={secondaryButtonStyle}>Learn More</button>
+        <button onClick={() => navigate('/about')} className="home-secondaryButton">Learn More</button>
       </div>
     </section>
   );
 }
-
-const buttonStyle = {
-  padding: '15px 30px',
-  backgroundColor: '#007bff',
-  color: 'white',
-  border: 'none',
-  borderRadius: '8px',
-  fontWeight: 'bold',
-  cursor: 'pointer',
-  fontSize: '16px',
-  transition: 'background-color 0.3s ease'
-};
-
-const secondaryButtonStyle = {
-  padding: '15px 30px',
-  backgroundColor: 'transparent',
-  color: '#007bff',
-  border: '2px solid #007bff',
-  borderRadius: '8px',
-  fontWeight: 'bold',
-  cursor: 'pointer',
-  fontSize: '16px',
-  transition: 'all 0.3s ease'
-};
 
 export default Home;

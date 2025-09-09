@@ -1,0 +1,8 @@
+/* Styles for Footer component */
+
+.footer {
+  padding: 20px;
+  text-align: center;
+  background-color: #007bff;
+  color: white;
+}

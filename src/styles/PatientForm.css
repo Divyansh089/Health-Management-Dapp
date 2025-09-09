@@ -1,0 +1,107 @@
+/* PatientForm Component Styles */
+
+.patientform-section {
+	padding: 50px 20px;
+	background-color: #f8f9fa;
+	min-height: 100vh;
+}
+
+.patientform-container {
+	max-width: 1000px;
+	margin: 0 auto;
+}
+
+.patientform-header {
+	text-align: center;
+	margin-bottom: 40px;
+}
+
+.patientform-backButton {
+	background-color: #6c757d;
+	color: white;
+	border: none;
+	padding: 10px 20px;
+	border-radius: 6px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	margin-bottom: 20px;
+	font-size: 14px;
+}
+
+.patientform-subtitle {
+	font-size: 16px;
+	color: #666;
+	margin-top: 10px;
+}
+
+.patientform-contentGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+	gap: 30px;
+	margin-bottom: 40px;
+}
+
+.patientform-infoCard {
+	background-color: white;
+	padding: 30px;
+	border-radius: 12px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	text-align: center;
+}
+
+.patientform-featureList {
+	list-style-type: disc;
+	text-align: left;
+	margin: 20px 0;
+	padding-left: 20px;
+}
+
+.patientform-registerButton {
+	background-color: #007bff;
+	color: white;
+	border: none;
+	padding: 12px 30px;
+	border-radius: 8px;
+	font-size: 16px;
+	font-weight: bold;
+	cursor: pointer;
+	margin-top: 20px;
+	transition: background-color 0.3s ease;
+}
+
+.patientform-dashboardButton {
+	background-color: #28a745;
+	color: white;
+	border: none;
+	padding: 12px 30px;
+	border-radius: 8px;
+	font-size: 16px;
+	font-weight: bold;
+	cursor: pointer;
+	margin-top: 20px;
+	transition: background-color 0.3s ease;
+}
+
+.patientform-helpSection {
+	background-color: white;
+	padding: 30px;
+	border-radius: 12px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	text-align: center;
+}
+
+.patientform-helpGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	gap: 20px;
+	margin-top: 20px;
+}
+
+.patientform-helpItem {
+	background-color: #f8f9fa;
+	padding: 20px;
+	border-radius: 8px;
+	border: 1px solid #dee2e6;
+	text-align: left;
+}

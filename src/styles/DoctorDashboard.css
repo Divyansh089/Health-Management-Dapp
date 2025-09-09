@@ -1,0 +1,402 @@
+/* DoctorDashboard.css */
+
+.doctordashboard-section {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.doctordashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.doctordashboard-header {
+  text-align: center;
+  margin-bottom: 30px;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 40px 20px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.doctordashboard-title {
+  font-size: 36px;
+  font-weight: bold;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.doctordashboard-subtitle {
+  font-size: 18px;
+  margin-top: 10px;
+  opacity: 0.9;
+}
+
+.doctordashboard-tabs {
+  display: flex;
+  background-color: white;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.doctordashboard-tab {
+  flex: 1;
+  padding: 15px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.doctordashboard-tab:hover {
+  background-color: #f8f9fa;
+  color: #28a745;
+}
+
+.doctordashboard-tab.active {
+  color: #28a745;
+  background-color: #e8f5e8;
+  border-bottom-color: #28a745;
+}
+
+.doctordashboard-content {
+  background-color: white;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.doctordashboard-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.doctordashboard-spinner {
+  font-size: 48px;
+  color: #28a745;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.doctordashboard-loadingText {
+  font-size: 18px;
+  color: #666;
+}
+
+.doctordashboard-overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.doctordashboard-statCard {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 25px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.doctordashboard-statCard:hover {
+  transform: translateY(-5px);
+}
+
+.doctordashboard-statIcon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.doctordashboard-statNumber {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.doctordashboard-statLabel {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.doctordashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.doctordashboard-table th {
+  background-color: #28a745;
+  color: white;
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.doctordashboard-table td {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.doctordashboard-table tr:last-child td {
+  border-bottom: none;
+}
+
+.doctordashboard-table tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.doctordashboard-statusBadge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.doctordashboard-statusBadge.completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.doctordashboard-statusBadge.pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.doctordashboard-statusBadge.active {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.doctordashboard-actionBtns {
+  display: flex;
+  gap: 8px;
+}
+
+.doctordashboard-actionBtn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.doctordashboard-completeBtn {
+  background-color: #28a745;
+  color: white;
+}
+
+.doctordashboard-completeBtn:hover {
+  background-color: #218838;
+}
+
+.doctordashboard-prescribeBtn {
+  background-color: #007bff;
+  color: white;
+}
+
+.doctordashboard-prescribeBtn:hover {
+  background-color: #0056b3;
+}
+
+.doctordashboard-editBtn {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.doctordashboard-editBtn:hover {
+  background-color: #e0a800;
+}
+
+.doctordashboard-addBtn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.doctordashboard-addBtn:hover {
+  background-color: #218838;
+  transform: translateY(-2px);
+}
+
+.doctordashboard-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.doctordashboard-modalContent {
+  background-color: white;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.doctordashboard-modalTitle {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.doctordashboard-modalBody {
+  margin-bottom: 20px;
+}
+
+.doctordashboard-formGroup {
+  margin-bottom: 20px;
+}
+
+.doctordashboard-formLabel {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.doctordashboard-formInput,
+.doctordashboard-formTextarea,
+.doctordashboard-formSelect {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.doctordashboard-formInput:focus,
+.doctordashboard-formTextarea:focus,
+.doctordashboard-formSelect:focus {
+  border-color: #28a745;
+}
+
+.doctordashboard-formTextarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.doctordashboard-modalFooter {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.doctordashboard-modalBtn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.doctordashboard-modalBtn.primary {
+  background-color: #28a745;
+  color: white;
+}
+
+.doctordashboard-modalBtn.primary:hover {
+  background-color: #218838;
+}
+
+.doctordashboard-modalBtn.secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.doctordashboard-modalBtn.secondary:hover {
+  background-color: #545b62;
+}
+
+.doctordashboard-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.doctordashboard-success {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.doctordashboard-noData {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .doctordashboard-tabs {
+    flex-direction: column;
+  }
+  
+  .doctordashboard-overviewGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .doctordashboard-table {
+    font-size: 14px;
+  }
+  
+  .doctordashboard-table th,
+  .doctordashboard-table td {
+    padding: 10px;
+  }
+  
+  .doctordashboard-actionBtns {
+    flex-direction: column;
+  }
+}
