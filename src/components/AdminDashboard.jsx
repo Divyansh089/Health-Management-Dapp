@@ -7,7 +7,7 @@ import {
   GET_ALL_REGISTERED_MEDICINES,
   GET_ALL_APPOINTMENTS,
   GET_FEE
-} from '../../Context/constants';
+} from '../../Context/constants.jsx';
 import { 
   FaUserShield, 
   FaUserMd, 

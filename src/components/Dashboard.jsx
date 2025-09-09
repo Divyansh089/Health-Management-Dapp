@@ -5,7 +5,7 @@ import {
   CHECK_PATIENT_REGISTERATION, 
   GET_USERNAME_TYPE,
   GET_FEE 
-} from '../../Context/constants';
+} from '../../Context/constants.jsx';
 import { useNavigate } from 'react-router-dom';
 import { FaUserMd, FaUserInjured, FaCog, FaSpinner } from 'react-icons/fa';
 import '../styles/Dashboard.css';

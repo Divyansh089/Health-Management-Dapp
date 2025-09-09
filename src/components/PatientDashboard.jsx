@@ -7,7 +7,7 @@ import {
   GET_ALL_PRESCRIBED_MEDICINES_OF_PATIENT,
   GET_ALL_PATIENT_ORDERS,
   GET_ALL_REGISTERED_MEDICINES
-} from '../../Context/constants';
+} from '../../Context/constants.jsx';
 import { FaCalendarAlt, FaPills, FaShoppingCart, FaUser, FaHistory, FaPlus, FaComments, FaBell } from 'react-icons/fa';
 import '../styles/PatientDashboard.css';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStateContext } from '../../Context/index.jsx';
-import { SHORTEN_ADDRESS } from '../../Context/constants';
+import { SHORTEN_ADDRESS } from '../../Context/constants.jsx';
 import { FaWallet, FaUser, FaSignOutAlt } from 'react-icons/fa';
 import '../styles/Navbar.css';
 

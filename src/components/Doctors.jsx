@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStateContext } from '../../Context/index.jsx';
 import '../styles/Doctors.css';
-import { GET_ALL_APPROVE_DOCTORS } from '../../Context/constants';
+import { GET_ALL_APPROVE_DOCTORS } from '../../Context/constants.jsx';
 import { FaUserMd, FaEnvelope, FaPhone, FaMapMarkerAlt, FaGraduationCap } from 'react-icons/fa';
 
 function Doctors() {
