@@ -6,7 +6,7 @@ import {
   GET_READ_MESSAGE, 
   GET_USERNAME_TYPE,
   GET_ALL_APP_USER
-} from '../../Context/constants';
+} from '../../Context/constants.jsx';
 import { FaComments, FaPaperPlane, FaUser, FaSearch } from 'react-icons/fa';
 
 const ChatSystem = () => {
