@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStateContext } from '../../Context/index.jsx';
-import { GET_ALL_REGISTERED_MEDICINES } from '../../Context/constants';
+import { GET_ALL_REGISTERED_MEDICINES } from '../../Context/constants.jsx';
 import { FaPills, FaShoppingCart, FaMapMarkerAlt, FaCalendarAlt, FaTag } from 'react-icons/fa';
 import '../styles/Marketplace.css';
 
