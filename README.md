@@ -1,12 +1,20 @@
-# React + Vite
+# Health-Management-Dapp
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Initial scaffold for the decentralized health management application.
 
-Currently, two official plugins are available:
+## Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- `contracts/` – Solidity smart contracts (Hardhat project scaffold to be added later)
+- `app/` – Front-end / client application (framework not chosen yet)
+- `package.json` – Root workspace manager (add Hardhat & frontend tooling later)
+- `.gitignore` – Common ignores for Node/Hardhat/front-end
 
-## Expanding the ESLint configuration
+## Next Steps (suggested)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Initialize Hardhat: `npm install --save-dev hardhat` then `npx hardhat`.
+2. Add a sample contract in `contracts/` (e.g., `HealthRecords.sol`).
+3. Decide front-end stack (React / Next.js / Vite) inside `app/`.
+4. Add environment variables in a `.env` (never commit secrets).
+5. Configure deployment scripts & networks.
+
+Feel free to ask me to generate any of these next steps.
