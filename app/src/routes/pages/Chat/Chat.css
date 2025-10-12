@@ -1,0 +1,4 @@
+.chat-page{display:flex;justify-content:center;align-items:center;padding:40px;min-height:60vh}
+.chat-card{max-width:520px;background:#fff;border-radius:18px;padding:32px;border:1px solid rgba(15,23,42,.08);box-shadow:0 18px 40px rgba(15,23,42,.1);text-align:center;display:flex;flex-direction:column;gap:16px}
+.chat-card h2{margin:0;font-size:1.6rem;color:#0f172a}
+.chat-card p{margin:0;color:#475569;line-height:1.6}

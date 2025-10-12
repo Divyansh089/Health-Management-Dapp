@@ -1,0 +1,17 @@
+.connect-modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;z-index:250}
+.connect-modal{position:relative;background:#fff;border-radius:20px;padding:32px;max-width:480px;width:100%;box-shadow:0 25px 60px rgba(15,23,42,.25);display:flex;flex-direction:column;gap:18px}
+.connect-modal h3{margin:0;font-size:1.6rem;color:#0f172a}
+.connect-modal p{margin:0;color:#475569;line-height:1.6}
+.connect-steps{margin:0;padding-left:20px;color:#475569;line-height:1.5}
+.connect-action{align-self:flex-start}
+.connect-error{font-size:.85rem;color:#dc2626}
+.connect-close{position:absolute;top:16px;right:16px;background:transparent;border:none;font-size:1.5rem;cursor:pointer;color:#94a3b8}
+.connect-close:hover{color:#0f172a}
+.connect-option-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.connect-option{border:1px solid rgba(15,23,42,.1);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;background:rgba(248,250,252,.8)}
+.connect-option h4{margin:0;font-size:1.1rem;color:#0f172a}
+.connect-option p{margin:0;color:#475569;font-size:.95rem;line-height:1.5}
+.connect-option .secondary-btn{align-self:flex-start}
+.secondary-btn{padding:10px 16px;border-radius:12px;border:1px solid rgba(15,23,42,.2);background:#fff;color:#0f172a;font-weight:700;cursor:pointer;transition:transform .2s ease,filter .2s ease}
+.secondary-btn:hover{transform:translateY(-2px);filter:brightness(.97)}
+.secondary-btn:disabled{opacity:.6;cursor:not-allowed}

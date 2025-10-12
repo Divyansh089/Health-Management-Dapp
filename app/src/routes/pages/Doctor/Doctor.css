@@ -1,0 +1,26 @@
+.page{display:flex;flex-direction:column;gap:24px;padding:32px;max-width:1000px;margin:0 auto}
+.panel{background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:18px;padding:24px;box-shadow:0 12px 30px rgba(15,23,42,.06);display:flex;flex-direction:column;gap:16px}
+.panel h3{margin:0;font-size:1.2rem;color:#0f172a}
+.page-header h2{margin:0;font-size:1.8rem;color:#0f172a}
+.page-header p{margin:6px 0 0;color:#64748b}
+.doctor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.doctor-tile{background:linear-gradient(135deg,rgba(30,136,229,.12),rgba(30,136,229,.03));border-radius:16px;padding:16px;border:1px solid rgba(30,136,229,.1);display:flex;flex-direction:column;gap:4px}
+.tile-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#1e88e5;font-weight:600}
+.tile-value{font-size:1.4rem;color:#0f172a;word-break:break-word}
+.tile-value.mono{font-family:"SFMono-Regular",ui-monospace,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:.85rem}
+.patient-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.patient-account{display:block;font-size:.8rem;color:#64748b;font-weight:500;margin-top:4px}
+.appointment-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+.appointment-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(15,23,42,.06)}
+.appointment-row:last-child{border-bottom:none}
+.appointment-row div{display:flex;flex-direction:column;gap:4px}
+.prescription-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+.prescription-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;padding:12px 0;border-bottom:1px solid rgba(15,23,42,.06)}
+.prescription-row:last-child{border-bottom:none}
+.primary-btn{padding:10px 16px;border:none;border-radius:10px;background:#1e88e5;color:#fff;font-weight:600;cursor:pointer;align-self:flex-start}
+.primary-btn:disabled{opacity:.6;cursor:not-allowed}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+@media (max-width:768px){
+  .page{padding:20px}
+  .panel{padding:20px}
+}

@@ -1,0 +1,4 @@
+.pagination{display:flex;gap:.5rem;align-items:center;justify-content:center;margin-top:16px}
+.pagination button{border:1px solid rgba(15,23,42,.15);background:#fff;color:#0f172a;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;transition:all .2s ease}
+.pagination button.active,.pagination button:hover:not(:disabled){background:#1e88e5;color:#fff;border-color:#1e88e5}
+.pagination button:disabled{opacity:.5;cursor:not-allowed}

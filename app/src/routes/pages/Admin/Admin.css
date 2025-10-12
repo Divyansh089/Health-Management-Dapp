@@ -1,0 +1,31 @@
+.page{display:flex;flex-direction:column;gap:24px;padding:32px;max-width:1100px;margin:0 auto}
+.page-header h2{margin:0;font-size:1.8rem;color:#0f172a}
+.page-header p{margin:6px 0 0;color:#64748b}
+.panel{background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:18px;padding:24px;box-shadow:0 12px 30px rgba(15,23,42,.08);display:flex;flex-direction:column;gap:18px}
+.panel h3{margin:0;font-size:1.2rem;color:#0f172a}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px}
+.stat-card{background:linear-gradient(135deg,rgba(30,136,229,.12),rgba(30,136,229,.04));border-radius:16px;padding:18px;border:1px solid rgba(30,136,229,.15);display:flex;flex-direction:column;gap:6px}
+.stat-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#1e88e5;font-weight:600}
+.stat-value{font-size:1.6rem;color:#0f172a}
+.skeleton-card{height:220px;animation:pulse 1.2s ease-in-out infinite;background:rgba(226,232,240,.6)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.primary-btn{align-self:flex-start;padding:10px 16px;border-radius:10px;border:none;background:#1e88e5;color:#fff;font-weight:600;cursor:pointer;transition:filter .2s ease,transform .2s ease}
+.fee-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.fee-list li{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid rgba(148,163,184,.25);border-radius:12px;background:#f8fafc;font-weight:600;color:#0f172a}
+.secondary-btn{padding:8px 12px;border-radius:10px;border:none;background:#0ea5e9;color:#fff;font-weight:600;cursor:pointer}
+.tertiary-btn{padding:8px 12px;border-radius:10px;border:1px solid rgba(15,23,42,.15);background:#fff;font-weight:600;color:#0f172a;cursor:pointer}
+.secondary-btn:disabled,.tertiary-btn:disabled{opacity:.6;cursor:not-allowed}
+.medicine-actions{display:flex;flex-direction:column;gap:12px;width:100%}
+.inline-form{display:flex;align-items:flex-end;gap:12px}
+.inline-form .form-field{flex:1}
+.primary-btn:hover{filter:brightness(.95);transform:translateY(-1px)}
+.primary-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+@keyframes pulse{
+  0%{opacity:.6}
+  50%{opacity:1}
+  100%{opacity:.6}
+}
+@media (max-width:768px){
+  .page{padding:20px}
+  .panel{padding:20px}
+}

@@ -1,29 +1,15 @@
 require("dotenv").config();
 require("@nomicfoundation/hardhat-toolbox");
 
-const { PRIVATE_KEY, RPC_URL, ETHERSCAN_API_KEY } = process.env;
+const { PRIVATE_KEY, HOLESKY_RPC_URL, ETHERSCAN_API_KEY } = process.env;
 
-/** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: {
-    version: "0.8.24",
-    settings: {
-      optimizer: { enabled: true, runs: 200 }
-    }
-  },
+  solidity: "0.8.20",
   networks: {
     holesky: {
-      url: RPC_URL || "https://ethereum-holesky.publicnode.com",
-      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+      url: HOLESKY_RPC_URL || "https://rpc.ankr.com/eth_holesky",
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : []
     }
   },
-  etherscan: {
-    apiKey: ETHERSCAN_API_KEY || ""
-  },
-  paths: {
-    sources: "./contracts",
-    artifacts: "./artifacts",
-    cache: "./cache",
-    tests: "./test"
-  }
+  etherscan: { apiKey: ETHERSCAN_API_KEY || "" }
 };
