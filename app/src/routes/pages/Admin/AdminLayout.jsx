@@ -6,6 +6,7 @@ const SIDEBAR_ITEMS = [
   { to: "/admin/doctors", label: "Doctors", icon: "👨‍⚕️" },
   { to: "/admin/patients", label: "Patients", icon: "👥" },
   { to: "/admin/medicines", label: "Medicines", icon: "💊" },
+  { to: "/admin/medicine-requests", label: "Medicine Requests", icon: "📋" },
   { to: "/admin/fees", label: "Update Fees", icon: "💰" },
   { to: "/admin/activity", label: "Activity", icon: "📈" }
 ];

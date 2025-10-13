@@ -1,5 +1,7 @@
+import { useState } from "react";
 import "./Card.css";
 import { formatDate } from "../../lib/format.js";
+import DoctorProfileModal from "../Modals/DoctorProfileModal.jsx";
 
 export default function DoctorCard({
   doctor,
@@ -8,6 +10,7 @@ export default function DoctorCard({
   actionDisabled = false,
   footer
 }) {
+  const [showProfile, setShowProfile] = useState(false);
   if (!doctor) return null;
   const successRate =
     doctor.appointments > 0
@@ -30,9 +33,17 @@ export default function DoctorCard({
         <div className="card-row">
           <span>Profile</span>
           {doctor.ipfs ? (
-            <a href={doctor.ipfs} target="_blank" rel="noreferrer">
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowProfile(true);
+              }}
+              className="view-profile-btn"
+              type="button"
+            >
               View
-            </a>
+            </button>
           ) : (
             <span className="muted">Not provided</span>
           )}
@@ -67,6 +78,12 @@ export default function DoctorCard({
           {footer}
         </footer>
       )}
+
+      <DoctorProfileModal 
+        doctor={doctor}
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+      />
     </article>
   );
 }

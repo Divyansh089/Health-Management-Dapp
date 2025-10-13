@@ -56,9 +56,22 @@ export function Web3Provider({ children }) {
 
       const handleAccountsChanged = (accounts) => {
         const next = accounts?.[0] ? accounts[0].toLowerCase() : null;
+        const prevAccount = account;
+        
         setAccount(next);
         queryClient.invalidateQueries({ queryKey: ["web3-role"] });
         queryClient.invalidateQueries({ queryKey: ["web3-admin"] });
+        
+        // Auto-redirect when wallet address changes
+        if (prevAccount && next && prevAccount !== next) {
+          // Wait for role to be updated, then redirect
+          setTimeout(() => {
+            window.location.href = '/'; // Redirect to home to re-evaluate role
+          }, 1000);
+        } else if (prevAccount && !next) {
+          // Wallet disconnected, redirect to home
+          window.location.href = '/';
+        }
       };
 
       window.ethereum?.on?.("accountsChanged", handleAccountsChanged);
@@ -68,7 +81,7 @@ export function Web3Provider({ children }) {
     } catch {
       // ignore when provider unavailable (handled above)
     }
-  }, [queryClient]);
+  }, [queryClient, account]);
 
   // Keep signer-backed contract in sync with current account
   useEffect(() => {

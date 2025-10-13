@@ -81,6 +81,11 @@ export default function ManageMedicines() {
           <h2>Medicine Catalogue</h2>
           <p>Update pricing, stock, and availability for each medicine.</p>
         </div>
+        <div className="page-actions">
+          <a href="/admin/add-medicine" className="btn-add">
+            ➕ Add Medicine
+          </a>
+        </div>
       </header>
 
       <div className="card-grid">

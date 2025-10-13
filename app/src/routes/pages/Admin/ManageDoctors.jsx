@@ -61,6 +61,11 @@ export default function ManageDoctors() {
           <h2>Doctor Approvals</h2>
           <p>Review and manage registered doctors.</p>
         </div>
+        <div className="page-actions">
+          <a href="/onboard/doctor" className="btn-add">
+            ➕ Add Doctor
+          </a>
+        </div>
       </header>
 
       <div className="card-grid">

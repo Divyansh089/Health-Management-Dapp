@@ -17,3 +17,20 @@
 .card-action{padding:8px 14px;background:#1e88e5;color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;transition:filter .2s ease}
 .card-action:disabled{opacity:.6;cursor:not-allowed}
 .card-action:not(:disabled):hover{filter:brightness(.95)}
+
+/* Profile view button */
+.view-profile-btn {
+  background: none;
+  border: none;
+  color: #1e88e5;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.view-profile-btn:hover {
+  background: rgba(30, 136, 229, 0.1);
+}

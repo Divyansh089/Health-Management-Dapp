@@ -1,1 +1,135 @@
+/* Onboarding styles */
+.onboard-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  min-height: calc(100vh - 72px);
+  background: linear-gradient(135deg, rgba(30, 136, 229, 0.05), rgba(30, 136, 229, 0.02));
+}
 
+.onboard-page .panel {
+  max-width: 600px;
+  width: 100%;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-full-width {
+  grid-column: 1/-1;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.checkbox-item input[type="checkbox"] {
+  margin: 0;
+}
+
+.availability-header,
+.ingredients-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.availability-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.availability-row select,
+.availability-row input {
+  flex: 1;
+}
+
+.remove-btn {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ingredients-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ingredient-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(30, 136, 229, 0.1);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.consent-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.consent-checkbox input[type="checkbox"] {
+  margin-top: 4px;
+  min-width: 16px;
+}
+
+.secondary-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(30, 136, 229, 0.3);
+  background: #fff;
+  color: #1e88e5;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background: rgba(30, 136, 229, 0.05);
+} 

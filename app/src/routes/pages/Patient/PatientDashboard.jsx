@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import AppointmentTable from "../../../components/Tables/AppointmentTable.jsx";
+import PatientProfileModal from "../../../components/Modals/PatientProfileModal.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
 import { fetchAppointmentsByPatient, fetchDoctors } from "../../../lib/queries.js";
@@ -8,6 +9,7 @@ import "./Patient.css";
 
 export default function PatientDashboard() {
   const { role, patientId, readonlyContract } = useWeb3();
+  const [showProfile, setShowProfile] = useState(false);
   const isPatient = role === ROLES.PATIENT;
 
   const patientQuery = useQuery({
@@ -86,9 +88,12 @@ export default function PatientDashboard() {
             <div className="patient-tile">
               <span className="tile-label">Profile</span>
               {patient.ipfs ? (
-                <a href={patient.ipfs} target="_blank" rel="noreferrer">
+                <button 
+                  onClick={() => setShowProfile(true)}
+                  className="view-profile-btn"
+                >
                   View record
-                </a>
+                </button>
               ) : (
                 <span className="tile-sub">Not provided</span>
               )}
@@ -112,6 +117,12 @@ export default function PatientDashboard() {
           actionLabel=""
         />
       </section>
+
+      <PatientProfileModal 
+        patient={patient}
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+      />
     </section>
   );
 }

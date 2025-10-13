@@ -19,6 +19,25 @@
 .inline-form{display:flex;align-items:flex-end;gap:12px}
 .inline-form .form-field{flex:1}
 .alert{padding:10px 14px;background:rgba(248,113,113,.15);color:#b91c1c;border-radius:10px;font-weight:600}
+
+/* Profile view button */
+.view-profile-btn {
+  background: none;
+  border: none;
+  color: #1e88e5;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.view-profile-btn:hover {
+  background: rgba(30, 136, 229, 0.1);
+}
+
 @media (max-width:768px){
   .page{padding:20px}
   .panel{padding:20px}

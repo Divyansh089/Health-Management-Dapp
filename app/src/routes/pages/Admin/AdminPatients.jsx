@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
+import PatientProfileModal from "../../../components/Modals/PatientProfileModal.jsx";
 import "./Admin.css";
 
 export default function AdminPatients() {
   const { readonlyContract } = useWeb3();
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   const patientsQuery = useQuery({
     queryKey: ["admin", "patients", readonlyContract?.target],
@@ -31,6 +34,11 @@ export default function AdminPatients() {
           <h2>Registered Patients</h2>
           <p>Review onboarded patients and their on-chain identifiers.</p>
         </div>
+        <div className="page-actions">
+          <a href="/onboard/patient" className="btn-add">
+            ➕ Add Patient
+          </a>
+        </div>
       </header>
       <div className="card-grid">
         {patientsQuery.isLoading &&
@@ -51,9 +59,12 @@ export default function AdminPatients() {
             <p>
               <strong>Profile:</strong> {" "}
               {patient.ipfs ? (
-                <a href={patient.ipfs} target="_blank" rel="noreferrer">
-                  View metadata
-                </a>
+                <button 
+                  onClick={() => setSelectedPatient(patient)}
+                  className="view-profile-btn"
+                >
+                  View Profile
+                </button>
               ) : (
                 "Not provided"
               )}
@@ -61,6 +72,12 @@ export default function AdminPatients() {
           </article>
         ))}
       </div>
+
+      <PatientProfileModal 
+        patient={selectedPatient}
+        isOpen={!!selectedPatient}
+        onClose={() => setSelectedPatient(null)}
+      />
     </section>
   );
 }
