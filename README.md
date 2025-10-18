@@ -1,4 +1,4 @@
-## TrustMed – Decentralized Healthcare Management System 🌐💊
+## MediFuse – Decentralized Healthcare Management System 🌐💊
 
 TrustMed is a next-gen Web3 healthcare DApp that brings secure, transparent, and patient-friendly healthcare to the blockchain. Built on Ethereum and IPFS, it integrates doctors, patients, medicines, and AI assistance into a single decentralized platform.
 
@@ -12,7 +12,7 @@ TrustMed is a next-gen Web3 healthcare DApp that brings secure, transparent, and
 * **Decentralized Medicine Marketplace** – Buy authentic medicines securely with crypto payments.
 * **Patient-Friendly Functionalities** – Update health records, book appointments, receive prescriptions digitally.
 
-#### 🔹 Why TrustMed?
+#### 🔹 Why MediFuse?
 
 * **Blockchain Security** – Tamper-proof, trustless operations via smart contracts.
 * **IPFS Storage** – Safe, decentralized storage for medical data & profiles.
@@ -24,7 +24,7 @@ TrustMed isn’t just a healthcare platform—it’s a Web3 healthcare revolutio
 
 ## Project Overview
 
-![alt text](public/images/demo/pic1.png)
+![alt text]
 
 Kindly follow the following Instructions to run the project in your system and install the necessary requirements
 
