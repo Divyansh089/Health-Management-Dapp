@@ -1,24 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useWeb3 } from '../../../state/Web3Provider.jsx';
 import { fetchFromIPFS } from '../../../lib/ipfs.js';
 import '../../../components/Tables/Table.css';
 import '../../../components/Toast/Toast.css';
+import Toast from '../../../components/Toast/Toast.jsx';
 import './Admin.css';
+import { useSearch } from '../../../state/SearchContext.jsx';
 
 export default function MedicineRequests() {
-  const { signerContract, readonlyContract } = useWeb3();
+  const { signerContract } = useWeb3();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
+  const { query, setPlaceholder, clearQuery } = useSearch();
 
   const showToastMessage = (message, type = 'success') => {
     setToastMessage(message);
     setToastType(type);
     setShowToast(true);
-    setTimeout(() => setShowToast(false), 5000);
   };
 
   const loadMedicineRequests = async () => {
@@ -134,6 +136,33 @@ export default function MedicineRequests() {
     loadMedicineRequests();
   }, []);
 
+  useEffect(() => {
+    setPlaceholder('Search medicine requests');
+    return () => {
+      setPlaceholder();
+      clearQuery();
+    };
+  }, [setPlaceholder, clearQuery]);
+
+  const filteredRequests = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return requests;
+    return requests.filter((req) => {
+      const fields = [
+        req.doctorName,
+        req.medicineName,
+        String(req.doctorId),
+        `doc-${String(req.doctorId).padStart(4, '0')}`,
+        req.status,
+        req.urgencyLevel,
+        req.ipfsCid
+      ]
+        .filter(Boolean)
+        .map((value) => value.toLowerCase());
+      return fields.some((value) => value.includes(term));
+    });
+  }, [requests, query]);
+
   if (loading) {
     return (
       <div className="page-container">
@@ -145,8 +174,8 @@ export default function MedicineRequests() {
     );
   }
 
-  const pendingRequests = requests.filter(req => req.status === 'pending');
-  const processedRequests = requests.filter(req => req.status !== 'pending');
+  const pendingRequests = filteredRequests.filter(req => req.status === 'pending');
+  const processedRequests = filteredRequests.filter(req => req.status !== 'pending');
 
   return (
     <div className="page-container">
@@ -279,11 +308,21 @@ export default function MedicineRequests() {
         </div>
       )}
 
-      {showToast && (
-        <div className={`toast ${toastType} ${showToast ? 'show' : ''}`}>
-          <span>{toastMessage}</span>
-          <button onClick={() => setShowToast(false)}>✕</button>
+      {requests.length > 0 && filteredRequests.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">🔍</div>
+          <h3>No Matching Requests</h3>
+          <p>No medicine requests match your search.</p>
         </div>
+      )}
+
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          duration={5000}
+          onDismiss={() => setShowToast(false)}
+        />
       )}
     </div>
   );

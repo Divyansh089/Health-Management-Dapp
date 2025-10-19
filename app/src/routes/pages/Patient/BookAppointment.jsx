@@ -8,6 +8,7 @@ import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
 import { fetchDoctors } from "../../../lib/queries.js";
+import { formatEntityId } from "../../../lib/format.js";
 import "./Patient.css";
 
 export default function BookAppointment() {
@@ -68,7 +69,7 @@ export default function BookAppointment() {
   const doctorOptions =
     doctorsQuery.data?.map((doctor) => ({
       value: doctor.id,
-      label: `Doctor #${doctor.id} (${doctor.account.slice(0, 6)}…)`
+      label: `${doctor.humanId || formatEntityId("DOC", doctor.id)} (${doctor.account.slice(0, 6)}…)`
     })) || [];
 
   return (

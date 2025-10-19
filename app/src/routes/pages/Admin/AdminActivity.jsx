@@ -10,7 +10,7 @@ import {
   fetchMedicines,
   fetchPatients
 } from "../../../lib/queries.js";
-import { formatDate } from "../../../lib/format.js";
+import { formatDate, formatEntityId } from "../../../lib/format.js";
 import "./Admin.css";
 
 export default function AdminActivity() {
@@ -61,7 +61,12 @@ export default function AdminActivity() {
   const doctorLookup = useMemo(() => {
     const map = {};
     (doctorsQuery.data || []).forEach((doc) => {
-      map[doc.id] = { account: doc.account, name: `Doctor #${doc.id}` };
+      const label = doc.humanId || formatEntityId("DOC", doc.id);
+      map[doc.id] = {
+        account: doc.account,
+        name: label,
+        humanId: label
+      };
     });
     return map;
   }, [doctorsQuery.data]);
@@ -69,7 +74,12 @@ export default function AdminActivity() {
   const patientLookup = useMemo(() => {
     const map = {};
     (patientsQuery.data || []).forEach((row) => {
-      map[row.id] = { account: row.account, name: `Patient #${row.id}` };
+      const label = row.humanId || formatEntityId("PAT", row.id);
+      map[row.id] = {
+        account: row.account,
+        name: label,
+        humanId: label
+      };
     });
     return map;
   }, [patientsQuery.data]);
@@ -77,7 +87,11 @@ export default function AdminActivity() {
   const medicineLookup = useMemo(() => {
     const map = {};
     (medicinesQuery.data || []).forEach((row) => {
-      map[row.id] = row;
+      const label = row.humanId || formatEntityId("MED", row.id);
+      map[row.id] = {
+        ...row,
+        humanId: label
+      };
     });
     return map;
   }, [medicinesQuery.data]);
@@ -135,19 +149,21 @@ export default function AdminActivity() {
                     <td>#{item.id}</td>
                     <td>
                       <span className="table-strong">
-                        {item.medicine ? `Medicine #${item.medicine.id}` : "Unknown"}
+                        {item.medicine
+                          ? item.medicine.humanId || formatEntityId("MED", item.medicine.id)
+                          : "Unknown"}
                       </span>
                       <span className="table-sub">{item.medicine?.ipfs}</span>
                     </td>
                     <td>
                       <span className="table-strong">
-                        {item.doctor?.name || `Doctor #${item.doctorId}`}
+                        {item.doctor?.name || formatEntityId("DOC", item.doctorId)}
                       </span>
                       <span className="table-sub">{item.doctor?.account}</span>
                     </td>
                     <td>
                       <span className="table-strong">
-                        {item.patient?.name || `Patient #${item.patientId}`}
+                        {item.patient?.name || formatEntityId("PAT", item.patientId)}
                       </span>
                       <span className="table-sub">{item.patient?.account}</span>
                     </td>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchFromIPFS } from '../../lib/ipfs.js';
+import { formatEntityId } from '../../lib/format.js';
 import './Modal.css';
 
 export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
@@ -48,7 +49,8 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
             licenseIssuer: actualData.license?.issuer || 'Not provided',
             website: actualData.links?.website || null,
             registrationDate: actualData.timestamp ? new Date(actualData.timestamp).toLocaleDateString() : 'Unknown',
-            submittedWallet: actualData.walletAddress || null
+            submittedWallet: actualData.walletAddress || null,
+            photoUrl: actualData.photo?.gatewayUrl || actualData.photo?.ipfsUrl || null
           };
           
           setProfileData(profileData);
@@ -78,7 +80,8 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
         consultationFee: '$150',
         bio: 'Profile data temporarily unavailable. This is mock display data.',
         address: '123 Medical Center Drive, City, State 12345',
-        submittedWallet: null
+        submittedWallet: null,
+        photoUrl: null
       };
 
       setProfileData(mockProfile);
@@ -126,7 +129,11 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
               
               <div className="profile-header">
                 <div className="profile-avatar">
-                  👨‍⚕️
+                  {profileData.photoUrl ? (
+                    <img src={profileData.photoUrl} alt={profileData.name} />
+                  ) : (
+                    '👨‍⚕️'
+                  )}
                 </div>
                 <div className="profile-basic">
                   <h3>{profileData.name}</h3>
@@ -238,7 +245,7 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
                       <div className="stat-label">Success Rate</div>
                     </div>
                     <div className="stat-item">
-                      <div className="stat-value">#{doctor.id}</div>
+                      <div className="stat-value">{doctor.humanId || formatEntityId('DOC', doctor.id)}</div>
                       <div className="stat-label">Doctor ID</div>
                     </div>
                   </div>
@@ -252,6 +259,10 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
                 <div className="profile-section">
                   <h4>🔗 Blockchain Information</h4>
                   <div className="blockchain-info">
+                    <div className="info-item">
+                      <strong>Doctor ID:</strong>
+                      <span className="wallet-address">{doctor.humanId || formatEntityId('DOC', doctor.id)}</span>
+                    </div>
                     {profileData.submittedWallet && (
                       <div className="info-item">
                         <strong>Submitted Wallet:</strong>

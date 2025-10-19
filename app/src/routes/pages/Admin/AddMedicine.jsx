@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ethers } from "ethers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
 import SelectField from "../../../components/Forms/SelectField.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
-import { uploadJSONToIPFS } from "../../../lib/ipfs.js";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../../../lib/ipfs.js";
 import { ROLES } from "../../../lib/constants.js";
 
 const DOSAGE_FORMS = [
@@ -23,6 +23,7 @@ export default function AddMedicine() {
   const { role, signerContract } = useWeb3();
   const [toast, setToast] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const formRef = useRef(null);
   const [formData, setFormData] = useState({
     name: "",
     dosageForm: "",
@@ -40,15 +41,25 @@ export default function AddMedicine() {
   const isAdmin = role === ROLES.ADMIN;
 
   const addMedicine = useMutation({
-    mutationFn: async (medicineData) => {
+    mutationFn: async ({ photoFile, ...medicineData }) => {
       if (!signerContract) throw new Error("Connect your admin wallet.");
       
       setIsUploading(true);
       try {
+        let photoMetadata;
+        if (photoFile && photoFile.size > 0) {
+          photoMetadata = await uploadFileToIPFS(photoFile);
+        }
         // Upload JSON metadata to IPFS
         const { ipfsUrl } = await uploadJSONToIPFS({
           type: "medicine",
           ...medicineData,
+          image: photoMetadata ? {
+            cid: photoMetadata.cid,
+            ipfsUrl: photoMetadata.ipfsUrl,
+            gatewayUrl: photoMetadata.gatewayUrl,
+            name: photoMetadata.name
+          } : undefined,
           timestamp: new Date().toISOString()
         });
 
@@ -79,6 +90,7 @@ export default function AddMedicine() {
         ingredients: [],
         price: ""
       });
+      formRef.current?.reset();
     },
     onError: (error) => setToast({ type: "error", message: error.message || "Failed to add medicine." })
   });
@@ -86,6 +98,8 @@ export default function AddMedicine() {
   const handleSubmit = (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const photoCandidate = form.get("photo");
+    const photoFile = photoCandidate instanceof File && photoCandidate.size > 0 ? photoCandidate : null;
     
     const medicineData = {
       name: form.get("name"),
@@ -101,7 +115,7 @@ export default function AddMedicine() {
       price: parseFloat(form.get("price"))
     };
 
-    addMedicine.mutate(medicineData);
+    addMedicine.mutate({ ...medicineData, photoFile });
   };
 
   const addIngredient = () => {
@@ -138,7 +152,7 @@ export default function AddMedicine() {
         <h2>Add New Medicine</h2>
         <p>Add a new medicine to the HealthcareLite catalog with complete details.</p>
         
-        <form className="form-grid" onSubmit={handleSubmit}>
+  <form className="form-grid" onSubmit={handleSubmit} ref={formRef}>
           <InputField
             name="name"
             label="Medicine Name"
@@ -213,6 +227,18 @@ export default function AddMedicine() {
             onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
             required
           />
+
+          <div className="form-group">
+            <label htmlFor="photo">Medicine Image</label>
+            <input
+              className="form-input"
+              type="file"
+              name="photo"
+              id="photo"
+              accept="image/*"
+            />
+            <span className="form-helper">Optional. Include product packshot (JPG/PNG/GIF).</span>
+          </div>
 
           <div className="form-group form-full-width">
             <label htmlFor="description">Description</label>

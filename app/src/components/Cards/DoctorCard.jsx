@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./Card.css";
-import { formatDate } from "../../lib/format.js";
+import { formatDate, formatEntityId } from "../../lib/format.js";
 import DoctorProfileModal from "../Modals/DoctorProfileModal.jsx";
 
 export default function DoctorCard({
@@ -21,7 +21,7 @@ export default function DoctorCard({
     <article className={`card ${doctor.approved ? "card-approved" : "card-pending"}`}>
       <header className="card-header">
         <div>
-          <h4>Doctor #{doctor.id}</h4>
+          <h4>{doctor.humanId || formatEntityId("DOC", doctor.id)}</h4>
           <span className="card-subtitle">{doctor.account}</span>
         </div>
         <span className={`status-chip ${doctor.approved ? "status-success" : "status-muted"}`}>

@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { formatEntityId } from "./format.js";
 
 function toNumber(value) {
   if (value === undefined || value === null) return 0;
@@ -30,6 +31,7 @@ export async function fetchDoctors(contract, { onlyApproved = false } = {}) {
       appointments: toNumber(row.appointments),
       successes: toNumber(row.successes)
     };
+    entry.humanId = formatEntityId("DOC", entry.id);
     if (!onlyApproved || entry.approved) {
       result.push(entry);
     }
@@ -43,11 +45,13 @@ export async function fetchPatients(contract) {
   const result = [];
   for (let i = 1; i <= total; i += 1) {
     const row = await contract.patients(i);
-    result.push({
+    const entry = {
       id: toNumber(row.id),
       account: row.account,
       ipfs: row.ipfs
-    });
+    };
+    entry.humanId = formatEntityId("PAT", entry.id);
+    result.push(entry);
   }
   return result;
 }
@@ -66,6 +70,7 @@ export async function fetchMedicines(contract, { includeInactive = true } = {}) 
       stock: toNumber(row.stock),
       active: row.active
     };
+    entry.humanId = formatEntityId("MED", entry.id);
     if (includeInactive || entry.active) {
       result.push(entry);
     }

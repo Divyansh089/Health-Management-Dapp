@@ -12,7 +12,7 @@ import {
   fetchMedicines,
   fetchPatients
 } from "../../../lib/queries.js";
-import { formatDate } from "../../../lib/format.js";
+import { formatDate, formatEntityId } from "../../../lib/format.js";
 import "./Doctor.css";
 
 export default function DoctorPrescriptions() {
@@ -87,7 +87,9 @@ export default function DoctorPrescriptions() {
         const patient = (patientsQuery.data || []).find((p) => p.id === patientId);
         return {
           value: patientId,
-          label: patient ? `Patient #${patient.id} (${patient.account.slice(0, 6)}…)` : `Patient #${patientId}`
+          label: patient
+            ? `${patient.humanId} (${patient.account.slice(0, 6)}…)`
+            : `${formatEntityId("PAT", patientId)}`
         };
       });
   }, [appointmentsQuery.data, patientsQuery.data]);
@@ -95,7 +97,7 @@ export default function DoctorPrescriptions() {
   const medicineOptions = useMemo(() => {
     return (medicinesQuery.data || []).map((medicine) => ({
       value: medicine.id,
-      label: `#${medicine.id} — ${medicine.priceEth.toFixed(4)} ETH`
+      label: `${medicine.humanId || formatEntityId("MED", medicine.id)} — ${medicine.priceEth.toFixed(4)} ETH`
     }));
   }, [medicinesQuery.data]);
 
@@ -151,8 +153,8 @@ export default function DoctorPrescriptions() {
           <ul className="prescription-list">
             {prescriptionsQuery.data.map((item) => {
               const medicine = medicinesQuery.data?.find((m) => m.id === item.medicineId);
-              const patientLabel =
-                patientsQuery.data?.find((p) => p.id === item.patientId)?.account || "Unknown";
+              const patientRecord = patientsQuery.data?.find((p) => p.id === item.patientId);
+              const patientLabel = patientRecord?.account || "Unknown";
               return (
                 <li key={item.id} className="prescription-row">
                   <div>
@@ -160,12 +162,14 @@ export default function DoctorPrescriptions() {
                     <span className="table-sub">{formatDate(item.date)}</span>
                   </div>
                   <div>
-                    <span className="table-strong">Patient #{item.patientId}</span>
+                    <span className="table-strong">
+                      {patientRecord?.humanId || formatEntityId("PAT", item.patientId)}
+                    </span>
                     <span className="table-sub">{patientLabel}</span>
                   </div>
                   <div>
                     <span className="table-strong">
-                      Medicine #{item.medicineId}{" "}
+                      {medicine?.humanId || formatEntityId("MED", item.medicineId)}{" "}
                       {medicine ? `(${medicine.priceEth.toFixed(4)} ETH)` : ""}
                     </span>
                     <span className="table-sub">{medicine?.ipfs}</span>

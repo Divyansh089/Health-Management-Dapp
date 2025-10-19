@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNotifications } from "../../state/NotificationContext.jsx";
 import "./Toast.css";
 
 export default function Toast({ message, type = "info", duration = 4000, onDismiss }) {
   const [visible, setVisible] = useState(Boolean(message));
+  const { pushNotification } = useNotifications();
 
   useEffect(() => {
     if (!message) return;
@@ -13,6 +15,12 @@ export default function Toast({ message, type = "info", duration = 4000, onDismi
     }, duration);
     return () => clearTimeout(timer);
   }, [message, duration, onDismiss]);
+
+  useEffect(() => {
+    if (!message) return;
+    const title = type === "error" ? "Error" : type === "success" ? "Success" : "Notification";
+    pushNotification({ title, message, type, createdAt: Date.now() });
+  }, [message, type, pushNotification]);
 
   if (!message || !visible) return null;
 

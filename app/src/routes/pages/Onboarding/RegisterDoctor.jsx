@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ethers } from "ethers";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
@@ -18,25 +18,28 @@ const LANGUAGES = ["English", "Hindi", "Tamil", "Telugu", "Bengali", "Marathi", 
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+const createDoctorFormState = () => ({
+  name: "",
+  specialties: [],
+  country: "IN",
+  city: "",
+  timezone: "Asia/Kolkata",
+  experienceYears: "",
+  languages: [],
+  bio: "",
+  email: "",
+  licenseNumber: "",
+  licenseIssuer: "",
+  website: "",
+  availability: []
+});
+
 export default function RegisterDoctor() {
   const { signerContract, readonlyContract } = useWeb3();
   const [toast, setToast] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    specialties: [],
-    country: "IN",
-    city: "",
-    timezone: "Asia/Kolkata",
-    experienceYears: "",
-    languages: [],
-    bio: "",
-    email: "",
-    licenseNumber: "",
-    licenseIssuer: "",
-    website: "",
-    availability: []
-  });
+  const formRef = useRef(null);
+  const [formData, setFormData] = useState(() => createDoctorFormState());
 
   const feeQuery = useQuery({
     queryKey: ["onboard", "doctor-fee"],
@@ -51,15 +54,25 @@ export default function RegisterDoctor() {
   });
 
   const registerDoctor = useMutation({
-    mutationFn: async (doctorData) => {
+    mutationFn: async ({ photoFile, ...doctorData }) => {
       if (!signerContract) throw new Error("Connect your wallet before registering.");
       
       setIsUploading(true);
       try {
+        let photoMetadata;
+        if (photoFile && photoFile.size > 0) {
+          photoMetadata = await uploadFileToIPFS(photoFile);
+        }
         // Upload JSON metadata to IPFS
         const { ipfsUrl } = await uploadJSONToIPFS({
           type: "doctor",
           ...doctorData,
+          photo: photoMetadata ? {
+            cid: photoMetadata.cid,
+            ipfsUrl: photoMetadata.ipfsUrl,
+            gatewayUrl: photoMetadata.gatewayUrl,
+            name: photoMetadata.name
+          } : undefined,
           timestamp: new Date().toISOString()
         });
 
@@ -72,7 +85,11 @@ export default function RegisterDoctor() {
         setIsUploading(false);
       }
     },
-    onSuccess: () => setToast({ type: "success", message: "Registration submitted. Await approval." }),
+    onSuccess: () => {
+      setToast({ type: "success", message: "Registration submitted. Await approval." });
+      setFormData(createDoctorFormState());
+      formRef.current?.reset();
+    },
     onError: (error) => setToast({ type: "error", message: error.message || "Registration failed." })
   });
 
@@ -80,6 +97,8 @@ export default function RegisterDoctor() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const walletAddress = form.get("walletAddress");
+    const photoCandidate = form.get("photo");
+    const photoFile = photoCandidate instanceof File && photoCandidate.size > 0 ? photoCandidate : null;
 
     if (!ethers.isAddress(walletAddress)) {
       setToast({ type: "error", message: "Enter a valid wallet address starting with 0x." });
@@ -111,7 +130,7 @@ export default function RegisterDoctor() {
       }
     };
 
-    registerDoctor.mutate(doctorData);
+    registerDoctor.mutate({ ...doctorData, photoFile });
   };
 
   const addAvailability = () => {
@@ -145,7 +164,7 @@ export default function RegisterDoctor() {
           Complete your professional profile to join HealthcareLite. Admin approval is required
           before you can prescribe medicines.
         </p>
-        <form className="form-grid" onSubmit={handleSubmit}>
+  <form className="form-grid" onSubmit={handleSubmit} ref={formRef}>
           <InputField
             name="name"
             label="Full Name"
@@ -159,6 +178,18 @@ export default function RegisterDoctor() {
             placeholder="0xabc123..."
             required
           />
+
+          <div className="form-group">
+            <label htmlFor="photo">Profile Photo</label>
+            <input
+              className="form-input"
+              type="file"
+              name="photo"
+              id="photo"
+              accept="image/*"
+            />
+            <span className="form-helper">Optional. Supports JPG, PNG or GIF under 5&nbsp;MB.</span>
+          </div>
           
           <div className="form-group">
             <label>Specialties</label>

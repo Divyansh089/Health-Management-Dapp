@@ -5,6 +5,7 @@ import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
 import { fetchAppointmentsByDoctor, fetchPatients } from "../../../lib/queries.js";
+import { formatEntityId } from "../../../lib/format.js";
 import "./Doctor.css";
 
 export default function DoctorDashboard() {
@@ -21,6 +22,7 @@ export default function DoctorDashboard() {
       const row = await readonlyContract.doctors(doctorId);
       return {
         id: Number(row.id),
+        humanId: formatEntityId("DOC", Number(row.id)),
         account: row.account,
         ipfs: row.ipfs,
         appointments: Number(row.appointments),
@@ -60,7 +62,10 @@ export default function DoctorDashboard() {
   const patientLookup = useMemo(() => {
     const map = {};
     (patientLookupQuery.data || []).forEach((patient) => {
-      map[patient.id] = { account: patient.account, name: `Patient #${patient.id}` };
+      map[patient.id] = {
+        account: patient.account,
+        name: patient.humanId || formatEntityId("PAT", patient.id)
+      };
     });
     return map;
   }, [patientLookupQuery.data]);
@@ -85,7 +90,12 @@ export default function DoctorDashboard() {
       : null;
 
   const doctorLookup = doctor
-    ? { [doctor.id]: { account: doctor.account, name: `Doctor #${doctor.id}` } }
+    ? {
+        [doctor.id]: {
+          account: doctor.account,
+          name: doctor.humanId || formatEntityId("DOC", doctor.id)
+        }
+      }
     : {};
 
   return (
@@ -105,7 +115,7 @@ export default function DoctorDashboard() {
           <div className="doctor-grid">
             <div className="doctor-tile">
               <span className="tile-label">Doctor ID</span>
-              <strong className="tile-value">#{doctor.id}</strong>
+              <strong className="tile-value">{doctor.humanId || formatEntityId("DOC", doctor.id)}</strong>
             </div>
             <div className="doctor-tile">
               <span className="tile-label">Wallet</span>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchFromIPFS } from '../../lib/ipfs.js';
+import { formatEntityId } from '../../lib/format.js';
 import './Modal.css';
 
 export default function PatientProfileModal({ patient, isOpen, onClose }) {
@@ -29,36 +30,23 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
           // Transform the actual IPFS data to display format
           const profileData = {
             name: actualData.name || 'Unknown Patient',
-            age: actualData.demographics?.age || 'Not specified',
-            gender: actualData.demographics?.gender || 'Not specified',
-            bloodGroup: actualData.medicalProfile?.bloodGroup || 'Not specified',
-            phone: 'Contact via platform', // For privacy
+            age: actualData.profile?.age ?? 'Not provided',
+            bloodGroup: actualData.profile?.bloodGroup || 'Not provided',
             email: actualData.contact?.email || 'Not provided',
-            emergencyContact: actualData.emergencyContact || {
-              name: 'Not provided',
-              phone: 'Not provided',
-              relation: 'Not provided'
-            },
-            medicalHistory: actualData.medicalProfile?.medicalHistory || [],
-            currentMedications: actualData.medicalProfile?.currentMedications || [],
-            allergies: actualData.medicalProfile?.allergies || [],
-            chronicConditions: actualData.medicalProfile?.chronicConditions || [],
-            lastCheckup: 'Not available',
-            height: actualData.medicalProfile?.height || 'Not specified',
-            weight: actualData.medicalProfile?.weight || 'Not specified',
-            bmi: 'Not calculated',
-            address: actualData.location ? `${actualData.location.city}, ${actualData.location.country}` : 'Not provided',
-            insuranceProvider: actualData.insurance?.provider || 'Not provided',
-            policyNumber: actualData.insurance?.policyNumber || 'Not provided',
-            // Additional fields from actual data
+            emergencyContact: actualData.contact?.emergency || 'Not provided',
+            allergies: Array.isArray(actualData.allergies) ? actualData.allergies : [],
+            conditions: Array.isArray(actualData.conditions) ? actualData.conditions : [],
+            address: actualData.location?.address || 'Not provided',
             city: actualData.location?.city || 'Not specified',
             country: actualData.location?.country || 'Not specified',
             timezone: actualData.location?.timezone || 'Not specified',
             registrationDate: actualData.timestamp ? new Date(actualData.timestamp).toLocaleDateString() : 'Unknown',
-            consent: actualData.consent || false,
-            submittedWallet: actualData.walletAddress || null
+            consent: Boolean(actualData.consent),
+            submittedWallet: actualData.walletAddress || null,
+            photoUrl: actualData.photo?.gatewayUrl || actualData.photo?.ipfsUrl || null,
+            isMock: false
           };
-          
+
           setProfileData(profileData);
           return;
         }
@@ -70,34 +58,20 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
       const mockProfile = {
         name: `Patient ${['Alex', 'Sarah', 'Michael', 'Emma', 'James'][Math.floor(Math.random() * 5)]} ${['Smith', 'Johnson', 'Williams', 'Brown', 'Davis'][Math.floor(Math.random() * 5)]}`,
         age: Math.floor(Math.random() * 40) + 25,
-        gender: ['Male', 'Female', 'Other'][Math.floor(Math.random() * 3)],
         bloodGroup: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'][Math.floor(Math.random() * 8)],
-        phone: '+1 (555) 987-6543',
         email: 'patient@email.com',
-        emergencyContact: {
-          name: 'Emergency Contact',
-          phone: '+1 (555) 111-2222',
-          relation: 'Spouse'
-        },
-        medicalHistory: [
-          'Hypertension (2020)',
-          'Diabetes Type 2 (2019)',
-          'Allergic to Penicillin'
-        ],
-        currentMedications: [
-          'Metformin 500mg - Twice daily',
-          'Lisinopril 10mg - Once daily'
-        ],
+        emergencyContact: '+1 (555) 111-2222',
         allergies: ['Penicillin', 'Shellfish', 'Pollen'],
-        chronicConditions: ['Hypertension', 'Type 2 Diabetes'],
-        lastCheckup: '2025-09-15',
-        height: '5\'8"',
-        weight: '165 lbs',
-        bmi: '25.1',
-        address: '456 Patient Street, City, State 67890',
-        insuranceProvider: 'HealthCare Plus',
-        policyNumber: 'HCP-123456789',
-        submittedWallet: null
+        conditions: ['Hypertension', 'Type 2 Diabetes'],
+        address: '456 Health Street',
+        city: 'Sample City',
+        country: 'Sample Country',
+        timezone: 'Asia/Kolkata',
+        registrationDate: new Date().toLocaleDateString(),
+        consent: false,
+        submittedWallet: null,
+        photoUrl: null,
+        isMock: true
       };
 
       setProfileData(mockProfile);
@@ -137,7 +111,7 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
 
           {profileData && (
             <div className="profile-content">
-              {profileData.name && profileData.name.startsWith('Patient ') && (
+              {profileData.isMock && (
                 <div className="data-source-notice">
                   ℹ️ <strong>Note:</strong> This profile shows sample data. The actual IPFS data could not be retrieved at this time.
                 </div>
@@ -145,11 +119,17 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
               
               <div className="profile-header">
                 <div className="profile-avatar">
-                  👤
+                  {profileData.photoUrl ? (
+                    <img src={profileData.photoUrl} alt={profileData.name} />
+                  ) : (
+                    '👤'
+                  )}
                 </div>
                 <div className="profile-basic">
                   <h3>{profileData.name}</h3>
-                  <p className="specialty">{profileData.age} years old • {profileData.gender}</p>
+                  <p className="specialty">
+                    Age: {profileData.age === 'Not provided' ? 'Not provided' : `${profileData.age} years`}
+                  </p>
                   <p className="qualification">Blood Group: {profileData.bloodGroup}</p>
                 </div>
                 <div className="profile-status">
@@ -165,27 +145,15 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
                   <div className="info-grid">
                     <div className="info-item">
                       <strong>Age:</strong>
-                      <span>{profileData.age} years</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Gender:</strong>
-                      <span>{profileData.gender}</span>
+                      <span>{profileData.age === 'Not provided' ? 'Not provided' : `${profileData.age} years`}</span>
                     </div>
                     <div className="info-item">
                       <strong>Blood Group:</strong>
                       <span>{profileData.bloodGroup}</span>
                     </div>
                     <div className="info-item">
-                      <strong>Height:</strong>
-                      <span>{profileData.height}</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Weight:</strong>
-                      <span>{profileData.weight}</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>BMI:</strong>
-                      <span>{profileData.bmi}</span>
+                      <strong>Consent:</strong>
+                      <span>{profileData.consent ? 'Granted' : 'Not provided'}</span>
                     </div>
                   </div>
                 </div>
@@ -193,6 +161,10 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
                 <div className="profile-section">
                   <h4>📞 Contact & Location</h4>
                   <div className="info-grid">
+                    <div className="info-item full-width">
+                      <strong>Address:</strong>
+                      <span>{profileData.address}</span>
+                    </div>
                     <div className="info-item">
                       <strong>Email:</strong>
                       <span>{profileData.email}</span>
@@ -219,52 +191,10 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
                 <div className="profile-section">
                   <h4>🚨 Emergency Contact</h4>
                   <div className="info-grid">
-                    <div className="info-item">
-                      <strong>Name:</strong>
-                      <span>{profileData.emergencyContact.name}</span>
+                    <div className="info-item full-width">
+                      <strong>Primary Contact:</strong>
+                      <span>{profileData.emergencyContact}</span>
                     </div>
-                    <div className="info-item">
-                      <strong>Phone:</strong>
-                      <span>{profileData.emergencyContact.phone}</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Relation:</strong>
-                      <span>{profileData.emergencyContact.relation}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="profile-section">
-                  <h4>🏥 Medical History</h4>
-                  <div className="medical-list">
-                    {profileData.medicalHistory?.length > 0 ? (
-                      profileData.medicalHistory.map((item, index) => (
-                        <div key={index} className="medical-item">
-                          📋 {item}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="medical-item">
-                        📋 No medical history provided
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="profile-section">
-                  <h4>💊 Current Medications</h4>
-                  <div className="medical-list">
-                    {profileData.currentMedications?.length > 0 ? (
-                      profileData.currentMedications.map((med, index) => (
-                        <div key={index} className="medical-item">
-                          💊 {med}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="medical-item">
-                        💊 No current medications listed
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -286,36 +216,18 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
                       </div>
                     </div>
                     <div className="info-item full-width">
-                      <strong>Chronic Conditions:</strong>
+                      <strong>Conditions:</strong>
                       <div className="tag-list">
-                        {profileData.chronicConditions?.length > 0 ? (
-                          profileData.chronicConditions.map((condition, index) => (
+                        {profileData.conditions?.length > 0 ? (
+                          profileData.conditions.map((condition, index) => (
                             <span key={index} className="condition-tag">
                               🏥 {condition}
                             </span>
                           ))
                         ) : (
-                          <span>No chronic conditions listed</span>
+                          <span>No conditions listed</span>
                         )}
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="profile-section">
-                  <h4>🏥 Healthcare Information</h4>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <strong>Last Checkup:</strong>
-                      <span>{new Date(profileData.lastCheckup).toLocaleDateString()}</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>Insurance Provider:</strong>
-                      <span>{profileData.insuranceProvider}</span>
-                    </div>
-                    <div className="info-item full-width">
-                      <strong>Policy Number:</strong>
-                      <span>{profileData.policyNumber}</span>
                     </div>
                   </div>
                 </div>
@@ -325,7 +237,7 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
                   <div className="blockchain-info">
                     <div className="info-item">
                       <strong>Patient ID:</strong>
-                      <span>#{patient.id}</span>
+                      <span className="wallet-address">{patient.humanId || formatEntityId('PAT', patient.id)}</span>
                     </div>
                     {profileData.submittedWallet && (
                       <div className="info-item">

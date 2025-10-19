@@ -1,5 +1,5 @@
 import "./Table.css";
-import { formatDate } from "../../lib/format.js";
+import { formatDate, formatEntityId } from "../../lib/format.js";
 
 export default function AppointmentTable({
   appointments = [],
@@ -35,13 +35,13 @@ export default function AppointmentTable({
                 <td>#{appt.id}</td>
                 <td>
                   <span className="table-strong">
-                    {doctorLookup[appt.doctorId]?.name || `Doctor #${appt.doctorId}`}
+                    {doctorLookup[appt.doctorId]?.name || formatEntityId("DOC", appt.doctorId)}
                   </span>
                   <span className="table-sub">{doctorLookup[appt.doctorId]?.account}</span>
                 </td>
                 <td>
                   <span className="table-strong">
-                    {patientLookup[appt.patientId]?.name || `Patient #${appt.patientId}`}
+                    {patientLookup[appt.patientId]?.name || formatEntityId("PAT", appt.patientId)}
                   </span>
                   <span className="table-sub">{patientLookup[appt.patientId]?.account}</span>
                 </td>

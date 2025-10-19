@@ -1,5 +1,5 @@
 import "./Card.css";
-import { formatDate } from "../../lib/format.js";
+import { formatDate, formatEntityId } from "../../lib/format.js";
 
 export default function MedicineCard({
   medicine,
@@ -13,7 +13,7 @@ export default function MedicineCard({
     <article className={`card ${medicine.active ? "card-approved" : "card-pending"}`}>
       <header className="card-header">
         <div>
-          <h4>Medicine #{medicine.id}</h4>
+          <h4>{medicine.humanId || formatEntityId("MED", medicine.id)}</h4>
           <span className="card-subtitle">{medicine.ipfs || "Metadata not set"}</span>
         </div>
         <span className={`status-chip ${medicine.active ? "status-success" : "status-muted"}`}>

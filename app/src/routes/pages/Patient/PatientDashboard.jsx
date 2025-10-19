@@ -5,6 +5,7 @@ import PatientProfileModal from "../../../components/Modals/PatientProfileModal.
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
 import { fetchAppointmentsByPatient, fetchDoctors } from "../../../lib/queries.js";
+import { formatEntityId } from "../../../lib/format.js";
 import "./Patient.css";
 
 export default function PatientDashboard() {
@@ -19,6 +20,7 @@ export default function PatientDashboard() {
       const row = await readonlyContract.patients(patientId);
       return {
         id: Number(row.id),
+        humanId: formatEntityId("PAT", Number(row.id)),
         account: row.account,
         ipfs: row.ipfs
       };
@@ -51,13 +53,25 @@ export default function PatientDashboard() {
   const doctorLookup = useMemo(() => {
     const map = {};
     (doctorsQuery.data || []).forEach((doctor) => {
-      map[doctor.id] = { account: doctor.account, name: `Dr. #${doctor.id}` };
+      map[doctor.id] = {
+        account: doctor.account,
+        name: doctor.humanId || formatEntityId("DOC", doctor.id)
+      };
     });
     return map;
   }, [doctorsQuery.data]);
 
   const patient = patientQuery.data;
   const appointments = appointmentsQuery.data || [];
+  const patientLookup = useMemo(() => {
+    if (!patient) return {};
+    return {
+      [patient.id]: {
+        account: patient.account,
+        name: patient.humanId || formatEntityId("PAT", patient.id)
+      }
+    };
+  }, [patient]);
 
   return (
     <section className="page">
@@ -79,7 +93,9 @@ export default function PatientDashboard() {
           <div className="patient-grid">
             <div className="patient-tile">
               <span className="tile-label">Patient ID</span>
-              <strong className="tile-value">#{patient.id}</strong>
+              <strong className="tile-value">
+                {patient.humanId || formatEntityId("PAT", patient.id)}
+              </strong>
             </div>
             <div className="patient-tile">
               <span className="tile-label">Wallet</span>
@@ -112,7 +128,7 @@ export default function PatientDashboard() {
         <AppointmentTable
           appointments={appointments}
           doctorLookup={doctorLookup}
-          patientLookup={patient ? { [patient.id]: patient } : {}}
+          patientLookup={patientLookup}
           emptyLabel="No appointments booked yet."
           actionLabel=""
         />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
@@ -7,14 +7,25 @@ import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
 import { fetchMedicines } from "../../../lib/queries.js";
+import { formatEntityId } from "../../../lib/format.js";
+import { useSearch } from "../../../state/SearchContext.jsx";
 import "./Admin.css";
 
 export default function ManageMedicines() {
   const queryClient = useQueryClient();
   const { role, signerContract, readonlyContract } = useWeb3();
   const [toast, setToast] = useState(null);
+  const { query, setPlaceholder, clearQuery } = useSearch();
 
   const isAdmin = role === ROLES.ADMIN;
+
+  useEffect(() => {
+    setPlaceholder("Search medicines by ID or name");
+    return () => {
+      setPlaceholder();
+      clearQuery();
+    };
+  }, [setPlaceholder, clearQuery]);
 
   const medicinesQuery = useQuery({
     queryKey: ["admin", "medicines"],
@@ -30,7 +41,8 @@ export default function ManageMedicines() {
     },
     onSuccess: (_res, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "medicines"] });
-      setToast({ type: "success", message: `Updated price for medicine #${variables.id}.` });
+      const label = variables.humanId || formatEntityId("MED", variables.id);
+      setToast({ type: "success", message: `Updated price for ${label}.` });
     },
     onError: (error) => setToast({ type: "error", message: error.message || "Failed to update price." })
   });
@@ -43,7 +55,8 @@ export default function ManageMedicines() {
     },
     onSuccess: (_res, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "medicines"] });
-      setToast({ type: "success", message: `Updated stock for medicine #${variables.id}.` });
+      const label = variables.humanId || formatEntityId("MED", variables.id);
+      setToast({ type: "success", message: `Updated stock for ${label}.` });
     },
     onError: (error) => setToast({ type: "error", message: error.message || "Failed to update stock." })
   });
@@ -56,7 +69,8 @@ export default function ManageMedicines() {
     },
     onSuccess: (_res, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "medicines"] });
-      setToast({ type: "success", message: `Toggled medicine #${variables.id}.` });
+      const label = variables.humanId || formatEntityId("MED", variables.id);
+      setToast({ type: "success", message: `Toggled ${label}.` });
     },
     onError: (error) => setToast({ type: "error", message: error.message || "Failed to toggle medicine." })
   });
@@ -73,6 +87,24 @@ export default function ManageMedicines() {
   }
 
   const medicines = medicinesQuery.data || [];
+  const filteredMedicines = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return medicines;
+    return medicines.filter((medicine) => {
+      const values = [
+        medicine.humanId,
+        medicine.ipfs,
+        String(medicine.priceEth),
+        String(medicine.stock),
+        medicine.active ? "active" : "inactive",
+        String(medicine.id)
+      ]
+        .filter(Boolean)
+        .map((value) => value.toLowerCase());
+      return values.some((value) => value.includes(term));
+    });
+  }, [medicines, query]);
+  const hasQuery = query.trim().length > 0;
 
   return (
     <section className="page">
@@ -93,13 +125,13 @@ export default function ManageMedicines() {
           Array.from({ length: 3 }).map((_, idx) => (
             <div key={idx} className="panel skeleton-card" />
           ))}
-        {!medicinesQuery.isLoading && medicines.length === 0 && (
+        {!medicinesQuery.isLoading && filteredMedicines.length === 0 && (
           <div className="panel">
-            <p>No medicines have been added yet.</p>
+            <p>{hasQuery ? "No medicines match your search." : "No medicines have been added yet."}</p>
           </div>
         )}
 
-        {medicines.map((medicine) => (
+        {filteredMedicines.map((medicine) => (
           <MedicineCard
             key={medicine.id}
             medicine={medicine}
@@ -112,6 +144,7 @@ export default function ManageMedicines() {
                     const form = new FormData(event.currentTarget);
                     setPrice.mutate({
                       id: medicine.id,
+                      humanId: medicine.humanId || formatEntityId("MED", medicine.id),
                       price: form.get("price")
                     });
                     event.currentTarget.reset();
@@ -137,6 +170,7 @@ export default function ManageMedicines() {
                     const form = new FormData(event.currentTarget);
                     setStock.mutate({
                       id: medicine.id,
+                      humanId: medicine.humanId || formatEntityId("MED", medicine.id),
                       stock: form.get("stock")
                     });
                     event.currentTarget.reset();
@@ -158,7 +192,12 @@ export default function ManageMedicines() {
                 <button
                   type="button"
                   className="tertiary-btn"
-                  onClick={() => toggleActive.mutate({ id: medicine.id })}
+                  onClick={() =>
+                    toggleActive.mutate({
+                      id: medicine.id,
+                      humanId: medicine.humanId || formatEntityId("MED", medicine.id)
+                    })
+                  }
                   disabled={toggleActive.isPending}
                 >
                   {toggleActive.isPending ? "Updating…" : medicine.active ? "Deactivate" : "Activate"}

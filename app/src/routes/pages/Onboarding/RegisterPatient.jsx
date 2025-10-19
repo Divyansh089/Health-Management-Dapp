@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ethers } from "ethers";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
 import SelectField from "../../../components/Forms/SelectField.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
-import { uploadJSONToIPFS } from "../../../lib/ipfs.js";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../../../lib/ipfs.js";
 import "./Onboarding.css";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -23,23 +23,26 @@ const COMMON_CONDITIONS = [
   "Mental Health Conditions", "Autoimmune Disorders"
 ];
 
+const createPatientFormState = () => ({
+  name: "",
+  country: "IN",
+  city: "",
+  timezone: "Asia/Kolkata",
+  email: "",
+  ageRange: "",
+  bloodGroup: "",
+  allergies: [],
+  conditions: [],
+  emergencyContact: "",
+  consent: false
+});
+
 export default function RegisterPatient() {
   const { signerContract, readonlyContract } = useWeb3();
   const [toast, setToast] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    country: "IN",
-    city: "",
-    timezone: "Asia/Kolkata",
-    email: "",
-    ageRange: "",
-    bloodGroup: "",
-    allergies: [],
-    conditions: [],
-    emergencyContact: "",
-    consent: false
-  });
+  const [formData, setFormData] = useState(() => createPatientFormState());
+  const formRef = useRef(null);
 
   const feeQuery = useQuery({
     queryKey: ["onboard", "patient-fee"],
@@ -54,15 +57,25 @@ export default function RegisterPatient() {
   });
 
   const registerPatient = useMutation({
-    mutationFn: async (patientData) => {
+    mutationFn: async ({ photoFile, ...patientData }) => {
       if (!signerContract) throw new Error("Connect your wallet before registering.");
       
       setIsUploading(true);
       try {
+        let photoMetadata;
+        if (photoFile && photoFile.size > 0) {
+          photoMetadata = await uploadFileToIPFS(photoFile);
+        }
         // Upload JSON metadata to IPFS
         const { ipfsUrl } = await uploadJSONToIPFS({
           type: "patient",
           ...patientData,
+          photo: photoMetadata ? {
+            cid: photoMetadata.cid,
+            ipfsUrl: photoMetadata.ipfsUrl,
+            gatewayUrl: photoMetadata.gatewayUrl,
+            name: photoMetadata.name
+          } : undefined,
           timestamp: new Date().toISOString()
         });
 
@@ -75,8 +88,11 @@ export default function RegisterPatient() {
         setIsUploading(false);
       }
     },
-    onSuccess: () =>
-      setToast({ type: "success", message: "Welcome! You can now book appointments." }),
+    onSuccess: () => {
+      setToast({ type: "success", message: "Welcome! You can now book appointments." });
+      setFormData(createPatientFormState());
+      formRef.current?.reset();
+    },
     onError: (error) => setToast({ type: "error", message: error.message || "Registration failed." })
   });
 
@@ -84,6 +100,8 @@ export default function RegisterPatient() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const walletAddress = form.get("walletAddress");
+    const photoCandidate = form.get("photo");
+    const photoFile = photoCandidate instanceof File && photoCandidate.size > 0 ? photoCandidate : null;
     
     if (!formData.consent) {
       setToast({ type: "error", message: "Please provide consent to proceed." });
@@ -116,7 +134,7 @@ export default function RegisterPatient() {
       consent: formData.consent
     };
 
-    registerPatient.mutate(patientData);
+    registerPatient.mutate({ ...patientData, photoFile });
   };
 
   return (
@@ -125,7 +143,7 @@ export default function RegisterPatient() {
         <h2>Patient Registration</h2>
         <p>Create your secure health profile to book appointments and manage your medical records.</p>
         
-        <form className="form-grid" onSubmit={handleSubmit}>
+  <form className="form-grid" onSubmit={handleSubmit} ref={formRef}>
           <InputField
             name="name"
             label="Full Name"
@@ -139,6 +157,18 @@ export default function RegisterPatient() {
             placeholder="0xabc123..."
             required
           />
+
+          <div className="form-group">
+            <label htmlFor="photo">Profile Photo</label>
+            <input
+              className="form-input"
+              type="file"
+              name="photo"
+              id="photo"
+              accept="image/*"
+            />
+            <span className="form-helper">Optional. Supports JPG, PNG or GIF under 5&nbsp;MB.</span>
+          </div>
 
           <InputField
             name="city"

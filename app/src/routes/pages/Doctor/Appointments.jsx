@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
 import { fetchAppointmentsByDoctor, fetchPatients } from "../../../lib/queries.js";
-import { formatDate } from "../../../lib/format.js";
+import { formatDate, formatEntityId } from "../../../lib/format.js";
 import "./Doctor.css";
 
 export default function DoctorAppointments() {
@@ -36,7 +36,11 @@ export default function DoctorAppointments() {
   const patients = useMemo(() => {
     const map = {};
     (patientsQuery.data || []).forEach((patient) => {
-      map[patient.id] = patient;
+      const label = patient.humanId || formatEntityId("PAT", patient.id);
+      map[patient.id] = {
+        ...patient,
+        humanId: label
+      };
     });
     return map;
   }, [patientsQuery.data]);
@@ -73,7 +77,7 @@ export default function DoctorAppointments() {
             return (
               <article key={patientId} className="panel">
                 <h3>
-                  Patient #{patientId}
+                  {patient?.humanId || formatEntityId("PAT", Number(patientId))}
                   <span className="patient-account">{patient?.account}</span>
                 </h3>
                 <ul className="appointment-list">

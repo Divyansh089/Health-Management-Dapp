@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DoctorCard from "../../../components/Cards/DoctorCard.jsx";
 import ConfirmModal from "../../../components/Modals/ConfirmModal.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
+import { formatEntityId } from "../../../lib/format.js";
 import { fetchDoctors } from "../../../lib/queries.js";
+import { useSearch } from "../../../state/SearchContext.jsx";
 import "./Admin.css";
 
 export default function ManageDoctors() {
@@ -13,8 +15,17 @@ export default function ManageDoctors() {
   const { role, signerContract, readonlyContract } = useWeb3();
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [toast, setToast] = useState(null);
+  const { query, setPlaceholder, clearQuery } = useSearch();
 
   const isAdmin = role === ROLES.ADMIN;
+
+  useEffect(() => {
+    setPlaceholder("Search doctors by ID or wallet");
+    return () => {
+      setPlaceholder();
+      clearQuery();
+    };
+  }, [setPlaceholder, clearQuery]);
 
   const doctorsQuery = useQuery({
     queryKey: ["admin", "doctors"],
@@ -32,7 +43,9 @@ export default function ManageDoctors() {
       queryClient.invalidateQueries({ queryKey: ["admin", "doctors"] });
       setToast({
         type: "success",
-        message: `Doctor #${variables.id} ${variables.approve ? "approved" : "revoked"}.`
+        message: `${variables.humanId || formatEntityId("DOC", variables.id)} ${
+          variables.approve ? "approved" : "revoked"
+        }.`
       });
       setSelectedDoctor(null);
     },
@@ -53,6 +66,17 @@ export default function ManageDoctors() {
   }
 
   const doctors = doctorsQuery.data || [];
+  const filteredDoctors = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return doctors;
+    return doctors.filter((doctor) => {
+      const values = [doctor.humanId, doctor.account, doctor.ipfs, String(doctor.id)]
+        .filter(Boolean)
+        .map((value) => value.toLowerCase());
+      return values.some((value) => value.includes(term));
+    });
+  }, [doctors, query]);
+  const hasQuery = query.trim().length > 0;
 
   return (
     <section className="page">
@@ -73,12 +97,12 @@ export default function ManageDoctors() {
           Array.from({ length: 3 }).map((_, idx) => (
             <div key={idx} className="panel skeleton-card" />
           ))}
-        {!doctorsQuery.isLoading && doctors.length === 0 && (
+        {!doctorsQuery.isLoading && filteredDoctors.length === 0 && (
           <div className="panel">
-            <p>No doctors registered yet.</p>
+            <p>{hasQuery ? "No doctors match your search." : "No doctors registered yet."}</p>
           </div>
         )}
-        {doctors.map((doctor) => (
+        {filteredDoctors.map((doctor) => (
           <DoctorCard
             key={doctor.id}
             doctor={doctor}
@@ -105,6 +129,7 @@ export default function ManageDoctors() {
         onConfirm={() =>
           toggleApproval.mutate({
             id: selectedDoctor.id,
+            humanId: selectedDoctor.humanId,
             approve: !selectedDoctor.approved
           })
         }
