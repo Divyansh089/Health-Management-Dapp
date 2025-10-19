@@ -129,9 +129,6 @@ export default function HomePage() {
             >
               Get Started
             </button>
-            <Link to="/public/doctors" className="ghost-btn">
-              Explore Doctors
-            </Link>
           </div>
         </div>
         <div className="hero-stats">

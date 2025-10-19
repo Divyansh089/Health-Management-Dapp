@@ -79,8 +79,15 @@ export default function RegisterDoctor() {
   const handleSubmit = (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const walletAddress = form.get("walletAddress");
+
+    if (!ethers.isAddress(walletAddress)) {
+      setToast({ type: "error", message: "Enter a valid wallet address starting with 0x." });
+      return;
+    }
     
     const doctorData = {
+      walletAddress,
       name: form.get("name"),
       specialties: formData.specialties,
       location: {
@@ -143,6 +150,13 @@ export default function RegisterDoctor() {
             name="name"
             label="Full Name"
             placeholder="Dr. A. Sharma"
+            required
+          />
+
+          <InputField
+            name="walletAddress"
+            label="Wallet Address"
+            placeholder="0xabc123..."
             required
           />
           

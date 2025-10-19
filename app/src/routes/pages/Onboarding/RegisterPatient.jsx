@@ -83,13 +83,20 @@ export default function RegisterPatient() {
   const handleSubmit = (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const walletAddress = form.get("walletAddress");
     
     if (!formData.consent) {
       setToast({ type: "error", message: "Please provide consent to proceed." });
       return;
     }
 
+    if (!ethers.isAddress(walletAddress)) {
+      setToast({ type: "error", message: "Enter a valid wallet address starting with 0x." });
+      return;
+    }
+
     const patientData = {
+      walletAddress,
       name: form.get("name"),
       location: {
         country: form.get("country"),
@@ -123,6 +130,13 @@ export default function RegisterPatient() {
             name="name"
             label="Full Name"
             placeholder="Ravi P"
+            required
+          />
+
+          <InputField
+            name="walletAddress"
+            label="Wallet Address"
+            placeholder="0xabc123..."
             required
           />
 

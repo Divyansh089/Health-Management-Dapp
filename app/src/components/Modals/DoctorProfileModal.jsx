@@ -47,7 +47,8 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
             licenseNumber: actualData.license?.number || 'Not provided',
             licenseIssuer: actualData.license?.issuer || 'Not provided',
             website: actualData.links?.website || null,
-            registrationDate: actualData.timestamp ? new Date(actualData.timestamp).toLocaleDateString() : 'Unknown'
+            registrationDate: actualData.timestamp ? new Date(actualData.timestamp).toLocaleDateString() : 'Unknown',
+            submittedWallet: actualData.walletAddress || null
           };
           
           setProfileData(profileData);
@@ -76,7 +77,8 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
         languages: ['English', 'Spanish'],
         consultationFee: '$150',
         bio: 'Profile data temporarily unavailable. This is mock display data.',
-        address: '123 Medical Center Drive, City, State 12345'
+        address: '123 Medical Center Drive, City, State 12345',
+        submittedWallet: null
       };
 
       setProfileData(mockProfile);
@@ -250,6 +252,12 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
                 <div className="profile-section">
                   <h4>🔗 Blockchain Information</h4>
                   <div className="blockchain-info">
+                    {profileData.submittedWallet && (
+                      <div className="info-item">
+                        <strong>Submitted Wallet:</strong>
+                        <span className="wallet-address">{profileData.submittedWallet}</span>
+                      </div>
+                    )}
                     <div className="info-item">
                       <strong>Wallet Address:</strong>
                       <span className="wallet-address">{doctor.account}</span>

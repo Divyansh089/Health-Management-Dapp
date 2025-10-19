@@ -55,7 +55,8 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
             country: actualData.location?.country || 'Not specified',
             timezone: actualData.location?.timezone || 'Not specified',
             registrationDate: actualData.timestamp ? new Date(actualData.timestamp).toLocaleDateString() : 'Unknown',
-            consent: actualData.consent || false
+            consent: actualData.consent || false,
+            submittedWallet: actualData.walletAddress || null
           };
           
           setProfileData(profileData);
@@ -95,7 +96,8 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
         bmi: '25.1',
         address: '456 Patient Street, City, State 67890',
         insuranceProvider: 'HealthCare Plus',
-        policyNumber: 'HCP-123456789'
+        policyNumber: 'HCP-123456789',
+        submittedWallet: null
       };
 
       setProfileData(mockProfile);
@@ -325,6 +327,12 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
                       <strong>Patient ID:</strong>
                       <span>#{patient.id}</span>
                     </div>
+                    {profileData.submittedWallet && (
+                      <div className="info-item">
+                        <strong>Submitted Wallet:</strong>
+                        <span className="wallet-address">{profileData.submittedWallet}</span>
+                      </div>
+                    )}
                     <div className="info-item">
                       <strong>Wallet Address:</strong>
                       <span className="wallet-address">{patient.account}</span>
