@@ -3,6 +3,32 @@ export const MEDICINE_REQUESTS_EVENT = "medicine-requests:changed";
 
 let memoryStore = [];
 
+function resolveImagePointer(pointer) {
+  if (!pointer) return null;
+  if (typeof pointer === "object") {
+    const nested =
+      pointer.gatewayUrl ||
+      pointer.url ||
+      pointer.ipfsUrl ||
+      pointer.cid ||
+      pointer.hash ||
+      pointer.src ||
+      pointer.href ||
+      null;
+    return resolveImagePointer(nested);
+  }
+  if (typeof pointer !== "string") return null;
+  const trimmed = pointer.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("ipfs://")) {
+    return `https://ipfs.io/ipfs/${trimmed.slice(7)}`;
+  }
+  if (trimmed.startsWith("http")) {
+    return trimmed;
+  }
+  return `https://ipfs.io/ipfs/${trimmed}`;
+}
+
 function hasStorage() {
   try {
     return typeof window !== "undefined" && window.localStorage;
@@ -16,6 +42,31 @@ function normalizeRequest(entry) {
   const now = new Date().toISOString();
   const requestDate = entry.requestDate || entry.createdAt || now;
   const updatedAt = entry.updatedAt || now;
+  const numericPrice = Number(entry.price);
+  const price = Number.isFinite(numericPrice) ? numericPrice : null;
+  const numericStock = Number(entry.stock ?? entry.quantity);
+  const stock = Number.isFinite(numericStock) ? numericStock : null;
+  const batch = entry.batch ?? entry.batchNumber ?? "";
+  const expiry = entry.expiry ?? entry.expiryDate ?? "";
+  const regulatoryId = entry.regulatoryId ?? entry.approvalNumber ?? "";
+  const storageRaw = entry.storage ?? entry.storageConditions ?? entry.storageNotes ?? "";
+  const storage = Array.isArray(storageRaw)
+    ? storageRaw
+    : typeof storageRaw === "string"
+    ? storageRaw
+        .split(/\r?\n|[.;]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+  const ingredientsSource = Array.isArray(entry.ingredients)
+    ? entry.ingredients
+    : Array.isArray(entry.activeIngredients)
+    ? entry.activeIngredients
+    : [];
+  const ingredients = ingredientsSource
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean);
+  const imageUrl = resolveImagePointer(entry.image || entry.imageUrl || entry.thumbnail || entry.cover || null);
   return {
     id: Number.isFinite(Number(entry.id)) ? Number(entry.id) : null,
     doctorId: entry.doctorId ?? null,
@@ -25,15 +76,18 @@ function normalizeRequest(entry) {
     genericName: entry.genericName || "",
     manufacturer: entry.manufacturer || "",
     description: entry.description || "",
-    activeIngredients: Array.isArray(entry.activeIngredients) ? entry.activeIngredients : [],
     strength: entry.strength || "",
     dosageForm: entry.dosageForm || "",
     therapeuticClass: entry.therapeuticClass || "",
-    approvalNumber: entry.approvalNumber || "",
-    expiryDate: entry.expiryDate || "",
-    batchNumber: entry.batchNumber || "",
-    price: entry.price ?? null,
-    currency: entry.currency || "USD",
+    regulatoryId,
+    expiry,
+    batch,
+    storage,
+    ingredients,
+  activeIngredients: ingredients,
+    price,
+    currency: entry.currency || "ETH",
+    stock,
     urgencyLevel: entry.urgencyLevel || "normal",
     requestReason: entry.requestReason || "",
     requestDate,
@@ -41,6 +95,9 @@ function normalizeRequest(entry) {
     ipfsCid: entry.ipfsCid || entry.cid || null,
     ipfsUrl: entry.ipfsUrl || entry.gatewayUrl || null,
     metadata: entry.metadata || null,
+    clientRequestId: entry.clientRequestId || entry.signature || null,
+  image: imageUrl,
+  imageUrl,
     createdAt: entry.createdAt || requestDate,
     updatedAt,
     processedAt: entry.processedAt || null,
@@ -55,10 +112,23 @@ function readFromStorage() {
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
-      return parsed
+      const normalized = parsed
         .map(normalizeRequest)
         .filter(Boolean)
         .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
+
+      const seen = new Set();
+      const unique = [];
+      for (const item of normalized) {
+        const key =
+          item.clientRequestId ||
+          (item.ipfsCid ? `cid:${item.ipfsCid}` : null) ||
+          (item.id !== null ? `id:${item.id}` : `${item.doctorId ?? "?"}:${item.requestDate}:${item.medicineName}`);
+        if (key && seen.has(key)) continue;
+        if (key) seen.add(key);
+        unique.push(item);
+      }
+      return unique;
     } catch {
       return [];
     }
@@ -105,6 +175,17 @@ export function addMedicineRequest(input) {
   const now = new Date().toISOString();
   const base = normalizeRequest({ ...input, createdAt: now, requestDate: now, updatedAt: now });
   if (!base) throw new Error("Invalid request payload");
+  const duplicate = current.find((item) => {
+    if (base.clientRequestId && item.clientRequestId === base.clientRequestId) return true;
+    if (base.ipfsCid && item.ipfsCid === base.ipfsCid) return true;
+    return false;
+  });
+  if (duplicate) {
+    const merged = { ...duplicate, ...base, id: duplicate.id ?? base.id };
+    const nextMerged = current.map((item) => (item === duplicate ? merged : item));
+    writeToStorage(nextMerged);
+    return merged;
+  }
   base.id = base.id ?? nextId(current);
   const next = [base, ...current.filter((item) => item.id !== base.id)];
   writeToStorage(next);

@@ -7,16 +7,7 @@ import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../../lib/ipfs.js";
 import { ROLES } from "../../../lib/constants.js";
-
-const DOSAGE_FORMS = [
-  "tablet", "capsule", "syrup", "injection", "cream", "ointment", 
-  "drops", "inhaler", "patch", "suppository"
-];
-
-const STORAGE_CONDITIONS = [
-  "Store below 25°C", "Store in refrigerator (2-8°C)", "Store below 30°C",
-  "Keep dry", "Protect from light", "Store in original container"
-];
+import { DOSAGE_FORMS, STORAGE_CONDITIONS } from "../../../lib/medicineConstants.js";
 
 export default function AddMedicine() {
   const queryClient = useQueryClient();

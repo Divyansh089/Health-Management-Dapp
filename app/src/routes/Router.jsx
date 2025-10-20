@@ -9,7 +9,6 @@ import AdminDashboard from "./pages/Admin/AdminDashboard.jsx";
 import ManageDoctors from "./pages/Admin/ManageDoctors.jsx";
 import ManageMedicines from "./pages/Admin/ManageMedicines.jsx";
 import AddMedicine from "./pages/Admin/AddMedicine.jsx";
-import MedicineRequests from "./pages/Admin/MedicineRequests.jsx";
 import AdminActivity from "./pages/Admin/AdminActivity.jsx";
 import AdminPatients from "./pages/Admin/AdminPatients.jsx";
 import AdminFees from "./pages/Admin/AdminFees.jsx";
@@ -41,7 +40,6 @@ export default function Router() {
         <Route path="patients" element={<AdminPatients />} />
         <Route path="medicines" element={<ManageMedicines />} />
         <Route path="add-medicine" element={<AddMedicine />} />
-        <Route path="medicine-requests" element={<MedicineRequests />} />
         <Route path="fees" element={<AdminFees />} />
         <Route path="activity" element={<AdminActivity />} />
       </Route>

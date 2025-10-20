@@ -1,17 +1,18 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { formatDate, formatEntityId } from '../../../lib/format.js';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { formatDate, formatEntityId } from "../../../lib/format.js";
 import {
   MEDICINE_REQUESTS_EVENT,
   addMedicineRequest,
   getMedicineRequests
-} from '../../../lib/medicineRequests.js';
-import { uploadJSONToIPFS } from '../../../lib/ipfs.js';
-import { useWeb3 } from '../../../state/Web3Provider.jsx';
-import Toast from '../../../components/Toast/Toast.jsx';
-import '../../../components/Forms/Form.css';
-import '../../../components/Tables/Table.css';
-import '../../../components/Toast/Toast.css';
-import './RequestMedicine.css';
+} from "../../../lib/medicineRequests.js";
+import { uploadJSONToIPFS } from "../../../lib/ipfs.js";
+import { DOSAGE_FORMS, STORAGE_CONDITIONS } from "../../../lib/medicineConstants.js";
+import { useWeb3 } from "../../../state/Web3Provider.jsx";
+import Toast from "../../../components/Toast/Toast.jsx";
+import "../../../components/Forms/Form.css";
+import "../../../components/Tables/Table.css";
+import "../../../components/Toast/Toast.css";
+import "./RequestMedicine.css";
 
 export default function RequestMedicine() {
   const { account, doctorId } = useWeb3();
@@ -20,30 +21,23 @@ export default function RequestMedicine() {
   const [requests, setRequests] = useState([]);
 
   const [formData, setFormData] = useState({
-    // Basic Information
-    name: '',
-    genericName: '',
-    manufacturer: '',
-    description: '',
-    
-    // Medical Information
-    activeIngredients: [''],
-    strength: '',
-    dosageForm: 'tablet',
-    therapeuticClass: '',
-    
-    // Regulatory Information
-    approvalNumber: '',
-    expiryDate: '',
-    batchNumber: '',
-    
-    // Pricing
-    price: '',
-    currency: 'USD',
-    
-    // Request Details
-    requestReason: '',
-    urgencyLevel: 'normal'
+    name: "",
+    genericName: "",
+    manufacturer: "",
+    imageUrl: "",
+    description: "",
+    dosageForm: "",
+    strength: "",
+    therapeuticClass: "",
+    ingredients: [""],
+    batch: "",
+    expiry: "",
+    regulatoryId: "",
+    storage: [],
+    price: "",
+    stock: "",
+    requestReason: "",
+    urgencyLevel: "normal"
   });
 
   const doctorLabel = useMemo(() => {
@@ -53,30 +47,30 @@ export default function RequestMedicine() {
 
   const canSubmit = Boolean(doctorId);
 
-  useEffect(() => {
-    function loadRequests() {
-      const all = getMedicineRequests();
-      if (doctorId) {
-        setRequests(all.filter((item) => Number(item?.doctorId) === Number(doctorId)));
-        return;
-      }
-      if (account) {
-        setRequests(all.filter((item) => item?.doctorAddress?.toLowerCase?.() === account.toLowerCase()));
-        return;
-      }
-      setRequests(all);
+  const refreshRequests = useCallback(() => {
+    const all = getMedicineRequests();
+    if (doctorId) {
+      setRequests(all.filter((item) => Number(item?.doctorId) === Number(doctorId)));
+      return;
     }
+    if (account) {
+      setRequests(all.filter((item) => item?.doctorAddress?.toLowerCase?.() === account.toLowerCase()));
+      return;
+    }
+    setRequests(all);
+  }, [doctorId, account]);
 
-    loadRequests();
+  useEffect(() => {
+    refreshRequests();
     if (typeof window === 'undefined') {
       return undefined;
     }
-    const handler = () => loadRequests();
+    const handler = () => refreshRequests();
     window.addEventListener(MEDICINE_REQUESTS_EVENT, handler);
     return () => {
       window.removeEventListener(MEDICINE_REQUESTS_EVENT, handler);
     };
-  }, [doctorId, account]);
+  }, [doctorId, account, refreshRequests]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -87,29 +81,50 @@ export default function RequestMedicine() {
   };
 
   const handleIngredientChange = (index, value) => {
-    const newIngredients = [...formData.activeIngredients];
+    const newIngredients = [...formData.ingredients];
     newIngredients[index] = value;
     setFormData(prev => ({
       ...prev,
-      activeIngredients: newIngredients
+      ingredients: newIngredients
     }));
   };
 
   const addIngredient = () => {
     setFormData(prev => ({
       ...prev,
-      activeIngredients: [...prev.activeIngredients, '']
+      ingredients: [...prev.ingredients, ""]
     }));
   };
 
   const removeIngredient = (index) => {
-    if (formData.activeIngredients.length > 1) {
-      const newIngredients = formData.activeIngredients.filter((_, i) => i !== index);
+    if (formData.ingredients.length > 1) {
+      const newIngredients = formData.ingredients.filter((_, i) => i !== index);
       setFormData(prev => ({
         ...prev,
-        activeIngredients: newIngredients
+        ingredients: newIngredients
       }));
     }
+  };
+
+  const toggleStorageCondition = (condition) => {
+    setFormData((prev) => {
+      const hasCondition = prev.storage.includes(condition);
+      const nextStorage = hasCondition
+        ? prev.storage.filter((item) => item !== condition)
+        : [...prev.storage, condition];
+      return { ...prev, storage: nextStorage };
+    });
+  };
+
+  const generateClientRequestId = () => {
+    try {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+    } catch {
+      // ignore
+    }
+    return `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   };
 
   const showToastMessage = (message, type = 'success') => {
@@ -128,7 +143,20 @@ export default function RequestMedicine() {
       setLoading(true);
 
       // Validate required fields
-      const requiredFields = ['name', 'genericName', 'manufacturer', 'strength', 'price', 'requestReason'];
+      const requiredFields = [
+        "name",
+        "genericName",
+        "manufacturer",
+        "dosageForm",
+        "strength",
+        "batch",
+        "expiry",
+        "regulatoryId",
+        "price",
+        "stock",
+        "description",
+        "requestReason"
+      ];
       const missingFields = requiredFields.filter(field => !formData[field].trim());
       
       if (missingFields.length > 0) {
@@ -138,18 +166,43 @@ export default function RequestMedicine() {
 
       const priceValue = Number(formData.price);
       if (!Number.isFinite(priceValue) || priceValue <= 0) {
-        showToastMessage('Please enter a valid price greater than zero', 'error');
+        showToastMessage('Please enter a valid price in ETH greater than zero', 'error');
         return;
       }
 
-      const activeIngredients = formData.activeIngredients
+      const stockValue = Number(formData.stock);
+      if (!Number.isFinite(stockValue) || stockValue < 0) {
+        showToastMessage('Please enter a valid stock quantity (0 or greater)', 'error');
+        return;
+      }
+
+      const ingredients = formData.ingredients
         .map((ingredient) => ingredient.trim())
         .filter(Boolean);
+
+      if (ingredients.length === 0) {
+        showToastMessage('Please provide at least one ingredient', 'error');
+        return;
+      }
+
+      const storageNotes = formData.storage;
+      if (storageNotes.length === 0) {
+        showToastMessage('Select at least one storage condition', 'error');
+        return;
+      }
+
+      const imageUrl = (formData.imageUrl || '').trim();
+
+      const clientRequestId = generateClientRequestId();
 
       // Prepare medicine request data
       const requestData = {
         ...formData,
-        activeIngredients,
+        ingredients,
+        storage: storageNotes,
+        batch: formData.batch,
+        expiry: formData.expiry,
+        regulatoryId: formData.regulatoryId,
         requestedBy: doctorId,
         doctorWallet: account || null,
         doctorLabel: doctorLabel || null,
@@ -157,13 +210,21 @@ export default function RequestMedicine() {
         status: 'pending',
         type: 'medicine_request',
         price: priceValue,
-        stock: 0
+        stock: stockValue,
+        currency: 'ETH',
+        clientRequestId,
+        imageUrl: imageUrl || null,
+        image: imageUrl || null
       };
 
       // Upload to IPFS
-      const ipfsResult = await uploadJSONToIPFS(requestData);
+      const ipfsResult = await uploadJSONToIPFS({
+        ...requestData,
+        type: 'medicine_request',
+        timestamp: new Date().toISOString()
+      });
       
-      const saved = addMedicineRequest({
+      addMedicineRequest({
         ...requestData,
         doctorId,
         doctorAddress: account || null,
@@ -177,8 +238,7 @@ export default function RequestMedicine() {
         metadata: requestData,
         status: 'pending'
       });
-      setRequests((prev) => [saved, ...prev]);
-
+      refreshRequests();
       showToastMessage('Medicine request submitted successfully! Waiting for admin approval.');
       
       // Reset form
@@ -186,16 +246,18 @@ export default function RequestMedicine() {
         name: '',
         genericName: '',
         manufacturer: '',
+        imageUrl: '',
         description: '',
-        activeIngredients: [''],
+        dosageForm: '',
         strength: '',
-        dosageForm: 'tablet',
         therapeuticClass: '',
-        approvalNumber: '',
-        expiryDate: '',
-        batchNumber: '',
+        ingredients: [''],
+        batch: '',
+        expiry: '',
+        regulatoryId: '',
+        storage: [],
         price: '',
-        currency: 'USD',
+        stock: '',
         requestReason: '',
         urgencyLevel: 'normal'
       });
@@ -229,7 +291,7 @@ export default function RequestMedicine() {
       )}
 
       <form onSubmit={handleSubmit} className="form-container">
-  <div className="form-section">
+        <div className="form-section">
           <h3>📋 Basic Information</h3>
           <div className="form-grid">
             <div className="input-group">
@@ -268,25 +330,66 @@ export default function RequestMedicine() {
               />
             </div>
 
+            <div className="input-group">
+              <label>Image URL</label>
+              <input
+                type="url"
+                name="imageUrl"
+                value={formData.imageUrl}
+                onChange={handleChange}
+                placeholder="https://gateway.pinata.cloud/ipfs/..."
+              />
+            </div>
+
+            <div className="input-group">
+              <label>Dosage Form *</label>
+              <select
+                name="dosageForm"
+                value={formData.dosageForm}
+                onChange={handleChange}
+                required
+              >
+                <option value="" disabled>Select dosage form</option>
+                {DOSAGE_FORMS.map((form) => (
+                  <option key={form} value={form}>
+                    {form.charAt(0).toUpperCase() + form.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="input-group">
+              <label>Strength *</label>
+              <input
+                type="text"
+                name="strength"
+                value={formData.strength}
+                onChange={handleChange}
+                required
+                placeholder="e.g., 500 mg"
+              />
+            </div>
+
             <div className="input-group full-width">
-              <label>Description</label>
+              <label>Description *</label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Brief description of the medicine..."
                 rows={3}
+                required
               />
             </div>
           </div>
         </div>
 
         <div className="form-section">
-          <h3>🧪 Medical Information</h3>
+          <h3>🧪 Composition & Therapeutic Info</h3>
           <div className="form-grid">
             <div className="input-group full-width">
-              <label>Active Ingredients</label>
-              {formData.activeIngredients.map((ingredient, index) => (
+              <label>Ingredients *</label>
+              {formData.ingredients.map((ingredient, index) => (
                 <div key={index} className="ingredient-input">
                   <input
                     type="text"
@@ -294,7 +397,7 @@ export default function RequestMedicine() {
                     onChange={(e) => handleIngredientChange(index, e.target.value)}
                     placeholder="e.g., Acetaminophen 500mg"
                   />
-                  {formData.activeIngredients.length > 1 && (
+                  {formData.ingredients.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeIngredient(index)}
@@ -311,35 +414,6 @@ export default function RequestMedicine() {
             </div>
 
             <div className="input-group">
-              <label>Strength *</label>
-              <input
-                type="text"
-                name="strength"
-                value={formData.strength}
-                onChange={handleChange}
-                required
-                placeholder="e.g., 500mg"
-              />
-            </div>
-
-            <div className="input-group">
-              <label>Dosage Form</label>
-              <select
-                name="dosageForm"
-                value={formData.dosageForm}
-                onChange={handleChange}
-              >
-                <option value="tablet">Tablet</option>
-                <option value="capsule">Capsule</option>
-                <option value="liquid">Liquid</option>
-                <option value="injection">Injection</option>
-                <option value="cream">Cream/Ointment</option>
-                <option value="drops">Drops</option>
-                <option value="inhaler">Inhaler</option>
-              </select>
-            </div>
-
-            <div className="input-group">
               <label>Therapeutic Class</label>
               <input
                 type="text"
@@ -353,70 +427,88 @@ export default function RequestMedicine() {
         </div>
 
         <div className="form-section">
-          <h3>📜 Regulatory Information</h3>
+          <h3>📜 Regulatory & Handling</h3>
           <div className="form-grid">
             <div className="input-group">
-              <label>Approval Number</label>
+              <label>Regulatory ID *</label>
               <input
                 type="text"
-                name="approvalNumber"
-                value={formData.approvalNumber}
+                name="regulatoryId"
+                value={formData.regulatoryId}
                 onChange={handleChange}
-                placeholder="FDA/Regulatory approval number"
+                required
+                placeholder="Regulatory approval number"
               />
             </div>
 
             <div className="input-group">
-              <label>Expiry Date</label>
+              <label>Expiry Date *</label>
               <input
                 type="date"
-                name="expiryDate"
-                value={formData.expiryDate}
+                name="expiry"
+                value={formData.expiry}
                 onChange={handleChange}
+                required
               />
             </div>
 
             <div className="input-group">
-              <label>Batch Number</label>
+              <label>Batch Number *</label>
               <input
                 type="text"
-                name="batchNumber"
-                value={formData.batchNumber}
+                name="batch"
+                value={formData.batch}
                 onChange={handleChange}
+                required
                 placeholder="Manufacturing batch number"
               />
+            </div>
+          </div>
+          <div className="storage-grid">
+            <label>Storage Conditions *</label>
+            <div className="checkbox-grid">
+              {STORAGE_CONDITIONS.map((condition) => (
+                <label key={condition} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={formData.storage.includes(condition)}
+                    onChange={() => toggleStorageCondition(condition)}
+                  />
+                  {condition}
+                </label>
+              ))}
             </div>
           </div>
         </div>
 
         <div className="form-section">
-          <h3>💰 Pricing</h3>
+          <h3>💰 Pricing & Inventory</h3>
           <div className="form-grid">
             <div className="input-group">
-              <label>Price *</label>
+              <label>Price (ETH) *</label>
               <input
                 type="number"
-                step="0.01"
+                step="0.0001"
                 name="price"
                 value={formData.price}
                 onChange={handleChange}
                 required
-                placeholder="0.00"
+                placeholder="0.0000"
               />
             </div>
 
             <div className="input-group">
-              <label>Currency</label>
-              <select
-                name="currency"
-                value={formData.currency}
+              <label>Initial Stock *</label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                name="stock"
+                value={formData.stock}
                 onChange={handleChange}
-              >
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-                <option value="INR">INR</option>
-              </select>
+                required
+                placeholder="e.g., 100"
+              />
             </div>
           </div>
         </div>
@@ -483,8 +575,10 @@ export default function RequestMedicine() {
               <thead>
                 <tr>
                   <th>Submitted</th>
+                  <th>Image</th>
                   <th>Medicine</th>
                   <th>Price</th>
+                  <th>Stock</th>
                   <th>Urgency</th>
                   <th>Status</th>
                 </tr>
@@ -494,6 +588,20 @@ export default function RequestMedicine() {
                   <tr key={item.id ?? item.ipfsCid ?? item.requestDate}>
                     <td>{formatDate(item.requestDate) || '—'}</td>
                     <td>
+                      {(item.imageUrl || item.image) ? (
+                        <img
+                          src={item.imageUrl || item.image}
+                          alt={item.medicineName || 'Medicine image'}
+                          className="request-image-thumb"
+                          onError={(event) => {
+                            event.currentTarget.classList.add('hidden');
+                          }}
+                        />
+                      ) : (
+                        <span className="request-image-placeholder">No image</span>
+                      )}
+                    </td>
+                    <td>
                       <div className="doctor-info">
                         <strong>{item.medicineName}</strong>
                         <small>{item.genericName || 'Generic name pending'}</small>
@@ -501,9 +609,10 @@ export default function RequestMedicine() {
                     </td>
                     <td>
                       {item.price !== null && item.price !== '' && Number.isFinite(Number(item.price))
-                        ? `${Number(item.price).toFixed(2)} ${item.currency}`
+                        ? `${Number(item.price).toFixed(4)} ETH`
                         : '—'}
                     </td>
+                    <td>{Number.isFinite(Number(item.stock)) ? Number(item.stock) : '—'}</td>
                     <td>
                       <span className={`urgency-pill ${(item.urgencyLevel || 'normal').toLowerCase()}`}>
                         {item.urgencyLevel?.toUpperCase?.() || 'NORMAL'}

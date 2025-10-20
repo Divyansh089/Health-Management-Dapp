@@ -62,6 +62,35 @@
   backdrop-filter: blur(4px);
 }
 
+.request-medicine-page .storage-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.request-medicine-page .storage-grid .checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.request-medicine-page .storage-grid .checkbox-item {
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #1e293b;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.request-medicine-page .storage-grid input[type="checkbox"] {
+  accent-color: #2563eb;
+}
+
 .request-medicine-page .form-section h3 {
   margin: 0;
   font-size: 1.15rem;
@@ -194,6 +223,32 @@
 
 .request-medicine-page .data-table tbody tr:hover {
   background: rgba(30, 136, 229, 0.06);
+}
+
+.request-image-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 14px;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.request-image-thumb.hidden {
+  display: none;
+}
+
+.request-image-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 8px 12px;
+  min-width: 70px;
 }
 
 .request-medicine-page .status-badge {

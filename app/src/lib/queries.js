@@ -104,10 +104,19 @@ export async function fetchMedicines(contract, { includeInactive = true } = {}) 
       priceEth: formatEther(row.priceWei),
       priceWei: row.priceWei,
       stock: toNumber(row.stock),
-      active: row.active
+      active: row.active,
+      displayName: null,
+      genericName: null,
+      manufacturer: null,
+      description: null,
+      dosageForm: null,
+      strength: null,
+      storage: [],
+      ingredients: [],
+      imageUrl: null,
+      metadata: null
     };
     entry.humanId = formatEntityId("MED", entry.id);
-    entry.displayName = null;
     if (entry.ipfs) {
       try {
         const url = resolveIpfsUri(entry.ipfs);
@@ -115,7 +124,40 @@ export async function fetchMedicines(contract, { includeInactive = true } = {}) 
           const response = await fetch(url);
           if (response.ok) {
             const metadata = await response.json();
-            entry.displayName = metadata?.name || metadata?.title || null;
+            entry.metadata = metadata || null;
+            entry.displayName = metadata?.name || metadata?.title || metadata?.medicineName || metadata?.productName || null;
+            entry.genericName = metadata?.genericName || metadata?.generic || metadata?.generic_name || null;
+            entry.manufacturer = metadata?.manufacturer || metadata?.maker || metadata?.brand || null;
+            entry.description = metadata?.description || metadata?.summary || metadata?.notes || null;
+            entry.dosageForm = metadata?.dosageForm || metadata?.form || null;
+            entry.strength = metadata?.strength || metadata?.dose || null;
+            const storageRaw = metadata?.storage || metadata?.storageConditions || metadata?.storageNotes || metadata?.storage_requirements;
+            if (Array.isArray(storageRaw)) {
+              entry.storage = storageRaw.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim());
+            } else if (typeof storageRaw === "string") {
+              entry.storage = storageRaw
+                .split(/\r?\n|[.;]/)
+                .map((item) => item.trim())
+                .filter(Boolean);
+            }
+            const ingredientsRaw = metadata?.ingredients || metadata?.activeIngredients || metadata?.composition;
+            if (Array.isArray(ingredientsRaw)) {
+              entry.ingredients = ingredientsRaw.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim());
+            }
+            const rawImage = metadata?.image || metadata?.imageUrl || metadata?.thumbnail || metadata?.cover;
+            if (rawImage && typeof rawImage === "object") {
+              const nestedPointer =
+                rawImage.gatewayUrl ||
+                rawImage.url ||
+                rawImage.ipfsUrl ||
+                rawImage.src ||
+                rawImage.href ||
+                rawImage.cid ||
+                rawImage.hash;
+              entry.imageUrl = nestedPointer ? resolveIpfsUri(nestedPointer) : null;
+            } else {
+              entry.imageUrl = rawImage ? resolveIpfsUri(rawImage) : null;
+            }
           }
         }
       } catch {
