@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\patel\\BlockChainOSProject\\Health-Management-Dapp\\contracts\\contracts\\Healthcare.sol": {
+      "lastModificationDate": 1759919692664,
+      "contentHash": "b487a3f6e68a880fc38c12dd8f0b02c3",
+      "sourceName": "contracts/Healthcare.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "HealthcareLite"
+      ]
+    }
+  }
+}
