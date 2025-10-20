@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ethers } from 'ethers';
-import { useWeb3 } from '../../../state/Web3Provider.jsx';
-import { fetchFromIPFS } from '../../../lib/ipfs.js';
-import '../../../components/Tables/Table.css';
-import '../../../components/Toast/Toast.css';
-import Toast from '../../../components/Toast/Toast.jsx';
-import './Admin.css';
-import { useSearch } from '../../../state/SearchContext.jsx';
+import React, { useEffect, useMemo, useState } from "react";
+import { ethers } from "ethers";
+import Toast from "../../../components/Toast/Toast.jsx";
+import "../../../components/Tables/Table.css";
+import "../../../components/Toast/Toast.css";
+import { MEDICINE_REQUESTS_EVENT, getMedicineRequests, updateMedicineRequest } from "../../../lib/medicineRequests.js";
+import { fetchFromIPFS } from "../../../lib/ipfs.js";
+import { formatDate, formatEntityId } from "../../../lib/format.js";
+import { useWeb3 } from "../../../state/Web3Provider.jsx";
+import { useSearch } from "../../../state/SearchContext.jsx";
+import "./Admin.css";
 
 export default function MedicineRequests() {
   const { signerContract } = useWeb3();
@@ -16,6 +18,7 @@ export default function MedicineRequests() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
+  const [selectedRequest, setSelectedRequest] = useState(null);
   const { query, setPlaceholder, clearQuery } = useSearch();
 
   const showToastMessage = (message, type = 'success') => {
@@ -24,44 +27,31 @@ export default function MedicineRequests() {
     setShowToast(true);
   };
 
-  const loadMedicineRequests = async () => {
+  const loadMedicineRequests = () => {
     try {
       setLoading(true);
-      
-      // Mock data for demonstration - in production, this would come from contract events
-      const mockRequests = [
-        {
-          id: 1,
-          doctorId: 1,
-          doctorName: 'Dr. Smith',
-          medicineName: 'Paracetamol Plus',
-          requestDate: '2025-10-13T10:30:00Z',
-          status: 'pending',
-          urgencyLevel: 'normal',
-          ipfsCid: 'bafyreiexample1'
-        },
-        {
-          id: 2,
-          doctorId: 2,
-          doctorName: 'Dr. Johnson',
-          medicineName: 'Advanced Antibiotic',
-          requestDate: '2025-10-12T14:20:00Z',
-          status: 'pending',
-          urgencyLevel: 'high',
-          ipfsCid: 'bafyreiexample2'
-        }
-      ];
-
-      setRequests(mockRequests);
+      const existing = getMedicineRequests();
+      setRequests(existing);
+      if (existing.length) {
+        setSelectedRequest((prev) => prev && existing.some((item) => item.id === prev.id)
+          ? existing.find((item) => item.id === prev.id) || existing[0]
+          : existing[0]);
+      } else {
+        setSelectedRequest(null);
+      }
     } catch (error) {
-      console.error('Error loading medicine requests:', error);
-      showToastMessage('Failed to load medicine requests', 'error');
+      console.error("Error loading medicine requests:", error);
+      showToastMessage("Failed to load medicine requests", "error");
     } finally {
       setLoading(false);
     }
   };
 
   const handleApprove = async (requestId, medicineName, ipfsCid) => {
+    if (!signerContract) {
+      showToastMessage('Connect the admin wallet to approve medicine requests.', 'error');
+      return;
+    }
     try {
       setProcessing(requestId);
       
@@ -88,18 +78,20 @@ export default function MedicineRequests() {
       );
       
       await tx.wait();
-      
-      // Update request status locally
-      setRequests(prev => prev.map(req => 
-        req.id === requestId 
-          ? { ...req, status: 'approved' }
-          : req
-      ));
-      
+
+      const updated = updateMedicineRequest(requestId, {
+        status: "approved",
+        processedAt: new Date().toISOString()
+      });
+
+      if (updated) {
+        setRequests((prev) => prev.map((req) => (req.id === requestId ? updated : req)));
+        setSelectedRequest((prev) => (prev && prev.id === requestId ? updated : prev));
+      }
       showToastMessage(`Medicine "${medicineName}" approved and added to catalog!`);
     } catch (error) {
-      console.error('Error approving medicine:', error);
-      showToastMessage('Failed to approve medicine request: ' + error.message, 'error');
+      console.error("Error approving medicine:", error);
+      showToastMessage("Failed to approve medicine request: " + error.message, "error");
     } finally {
       setProcessing(null);
     }
@@ -109,18 +101,18 @@ export default function MedicineRequests() {
     try {
       setProcessing(requestId);
       
-      // In a real implementation, you'd update the request status in the contract
-      // For now, we'll just update locally
-      setRequests(prev => prev.map(req => 
-        req.id === requestId 
-          ? { ...req, status: 'rejected' }
-          : req
-      ));
-      
+      const updated = updateMedicineRequest(requestId, {
+        status: "rejected",
+        processedAt: new Date().toISOString()
+      });
+      if (updated) {
+        setRequests((prev) => prev.map((req) => (req.id === requestId ? updated : req)));
+        setSelectedRequest((prev) => (prev && prev.id === requestId ? updated : prev));
+      }
       showToastMessage(`Medicine request for "${medicineName}" rejected`);
     } catch (error) {
-      console.error('Error rejecting medicine:', error);
-      showToastMessage('Failed to reject medicine request', 'error');
+      console.error("Error rejecting medicine:", error);
+      showToastMessage("Failed to reject medicine request", "error");
     } finally {
       setProcessing(null);
     }
@@ -147,6 +139,23 @@ export default function MedicineRequests() {
 
   useEffect(() => {
     loadMedicineRequests();
+    if (typeof window !== "undefined") {
+      const handler = (event) => {
+        const nextRequests = event?.detail?.requests || getMedicineRequests();
+        setRequests(nextRequests);
+        if (nextRequests.length) {
+          setSelectedRequest((prev) => prev && nextRequests.some((item) => item.id === prev.id)
+            ? nextRequests.find((item) => item.id === prev.id) || nextRequests[0]
+            : nextRequests[0]);
+        } else {
+          setSelectedRequest(null);
+        }
+      };
+      window.addEventListener(MEDICINE_REQUESTS_EVENT, handler);
+      return () => {
+        window.removeEventListener(MEDICINE_REQUESTS_EVENT, handler);
+      };
+    }
   }, []);
 
   useEffect(() => {
@@ -163,9 +172,12 @@ export default function MedicineRequests() {
     return requests.filter((req) => {
       const fields = [
         req.doctorName,
+        req.doctorAddress,
         req.medicineName,
+        req.genericName,
+        req.manufacturer,
         String(req.doctorId),
-        `doc-${String(req.doctorId).padStart(4, '0')}`,
+        formatEntityId('DOC', req.doctorId),
         req.status,
         req.urgencyLevel,
         req.ipfsCid
@@ -221,10 +233,16 @@ export default function MedicineRequests() {
                       </div>
                     </td>
                     <td>
-                      <strong>{request.medicineName}</strong>
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => setSelectedRequest(request)}
+                      >
+                        {request.medicineName}
+                      </button>
                     </td>
                     <td>
-                      {new Date(request.requestDate).toLocaleDateString()}
+                      {formatDate(request.requestDate) || '—'}
                     </td>
                     <td>
                       <span 
@@ -284,10 +302,16 @@ export default function MedicineRequests() {
                       </div>
                     </td>
                     <td>
-                      <strong>{request.medicineName}</strong>
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => setSelectedRequest(request)}
+                      >
+                        {request.medicineName}
+                      </button>
                     </td>
                     <td>
-                      {new Date(request.requestDate).toLocaleDateString()}
+                      {formatDate(request.requestDate) || '—'}
                     </td>
                     <td>
                       <span 
@@ -326,6 +350,110 @@ export default function MedicineRequests() {
           <div className="empty-icon">🔍</div>
           <h3>No Matching Requests</h3>
           <p>No medicine requests match your search.</p>
+        </div>
+      )}
+
+      {selectedRequest && (
+        <div className="card">
+          <h3>📝 Request Details</h3>
+          <div className="details-grid">
+            <div>
+              <strong>Medicine Name</strong>
+              <p>{selectedRequest.medicineName}</p>
+            </div>
+            <div>
+              <strong>Generic Name</strong>
+              <p>{selectedRequest.genericName || '—'}</p>
+            </div>
+            <div>
+              <strong>Manufacturer</strong>
+              <p>{selectedRequest.manufacturer || '—'}</p>
+            </div>
+            <div>
+              <strong>Urgency</strong>
+              <p>{selectedRequest.urgencyLevel?.toUpperCase?.() || 'NORMAL'}</p>
+            </div>
+            <div>
+              <strong>Price</strong>
+              <p>
+                {selectedRequest.price !== null && selectedRequest.price !== '' && Number.isFinite(Number(selectedRequest.price))
+                  ? `${Number(selectedRequest.price).toFixed(2)} ${selectedRequest.currency}`
+                  : '—'}
+              </p>
+            </div>
+            <div>
+              <strong>Status</strong>
+              <p>{selectedRequest.status?.toUpperCase?.() || 'PENDING'}</p>
+            </div>
+            <div>
+              <strong>Doctor ID</strong>
+              <p>{selectedRequest.doctorId ? formatEntityId('DOC', selectedRequest.doctorId) : '—'}</p>
+            </div>
+            <div>
+              <strong>Doctor Wallet</strong>
+              <p className="truncate">{selectedRequest.doctorAddress || '—'}</p>
+            </div>
+            <div>
+              <strong>Strength</strong>
+              <p>{selectedRequest.strength || '—'}</p>
+            </div>
+            <div>
+              <strong>Dosage Form</strong>
+              <p>{selectedRequest.dosageForm || '—'}</p>
+            </div>
+            <div>
+              <strong>Therapeutic Class</strong>
+              <p>{selectedRequest.therapeuticClass || '—'}</p>
+            </div>
+            <div>
+              <strong>Approval Number</strong>
+              <p>{selectedRequest.approvalNumber || '—'}</p>
+            </div>
+            <div>
+              <strong>Expiry Date</strong>
+              <p>{selectedRequest.expiryDate ? formatDate(selectedRequest.expiryDate) : '—'}</p>
+            </div>
+            <div>
+              <strong>Batch Number</strong>
+              <p>{selectedRequest.batchNumber || '—'}</p>
+            </div>
+            <div className="full-width">
+              <strong>Reason</strong>
+              <p>{selectedRequest.requestReason || 'No justification provided.'}</p>
+            </div>
+            {selectedRequest.activeIngredients?.length ? (
+              <div className="full-width">
+                <strong>Active Ingredients</strong>
+                <ul className="pill-list">
+                  {selectedRequest.activeIngredients.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {selectedRequest.description ? (
+              <div className="full-width">
+                <strong>Description</strong>
+                <p>{selectedRequest.description}</p>
+              </div>
+            ) : null}
+          </div>
+
+          <footer className="details-footer">
+            <div>
+              <small>Submitted: {formatDate(selectedRequest.requestDate) || '—'}</small>
+            </div>
+            {selectedRequest.ipfsCid && (
+              <a
+                className="link-button"
+                href={`https://ipfs.io/ipfs/${selectedRequest.ipfsCid}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View Metadata →
+              </a>
+            )}
+          </footer>
         </div>
       )}
 

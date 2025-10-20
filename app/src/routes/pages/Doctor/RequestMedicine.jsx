@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
-import { useWeb3 } from '../../../state/Web3Provider.jsx';
+import React, { useEffect, useMemo, useState } from 'react';
+import { formatDate, formatEntityId } from '../../../lib/format.js';
+import {
+  MEDICINE_REQUESTS_EVENT,
+  addMedicineRequest,
+  getMedicineRequests
+} from '../../../lib/medicineRequests.js';
 import { uploadJSONToIPFS } from '../../../lib/ipfs.js';
+import { useWeb3 } from '../../../state/Web3Provider.jsx';
+import Toast from '../../../components/Toast/Toast.jsx';
 import '../../../components/Forms/Form.css';
+import '../../../components/Tables/Table.css';
 import '../../../components/Toast/Toast.css';
+import './RequestMedicine.css';
 
 export default function RequestMedicine() {
-  const { signerContract, doctorId } = useWeb3();
+  const { account, doctorId } = useWeb3();
   const [loading, setLoading] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState('success');
+  const [toast, setToast] = useState(null);
+  const [requests, setRequests] = useState([]);
 
   const [formData, setFormData] = useState({
     // Basic Information
@@ -37,6 +45,38 @@ export default function RequestMedicine() {
     requestReason: '',
     urgencyLevel: 'normal'
   });
+
+  const doctorLabel = useMemo(() => {
+    if (!doctorId) return null;
+    return formatEntityId('DOC', doctorId);
+  }, [doctorId]);
+
+  const canSubmit = Boolean(doctorId);
+
+  useEffect(() => {
+    function loadRequests() {
+      const all = getMedicineRequests();
+      if (doctorId) {
+        setRequests(all.filter((item) => Number(item?.doctorId) === Number(doctorId)));
+        return;
+      }
+      if (account) {
+        setRequests(all.filter((item) => item?.doctorAddress?.toLowerCase?.() === account.toLowerCase()));
+        return;
+      }
+      setRequests(all);
+    }
+
+    loadRequests();
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handler = () => loadRequests();
+    window.addEventListener(MEDICINE_REQUESTS_EVENT, handler);
+    return () => {
+      window.removeEventListener(MEDICINE_REQUESTS_EVENT, handler);
+    };
+  }, [doctorId, account]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -73,16 +113,13 @@ export default function RequestMedicine() {
   };
 
   const showToastMessage = (message, type = 'success') => {
-    setToastMessage(message);
-    setToastType(type);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 5000);
+    setToast({ message, type });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!signerContract || !doctorId) {
+    if (!doctorId) {
       showToastMessage('Please connect your wallet and ensure you are registered as a doctor', 'error');
       return;
     }
@@ -99,28 +136,48 @@ export default function RequestMedicine() {
         return;
       }
 
+      const priceValue = Number(formData.price);
+      if (!Number.isFinite(priceValue) || priceValue <= 0) {
+        showToastMessage('Please enter a valid price greater than zero', 'error');
+        return;
+      }
+
+      const activeIngredients = formData.activeIngredients
+        .map((ingredient) => ingredient.trim())
+        .filter(Boolean);
+
       // Prepare medicine request data
       const requestData = {
         ...formData,
-        activeIngredients: formData.activeIngredients.filter(ingredient => ingredient.trim()),
+        activeIngredients,
         requestedBy: doctorId,
+        doctorWallet: account || null,
+        doctorLabel: doctorLabel || null,
         requestDate: new Date().toISOString(),
         status: 'pending',
-        type: 'medicine_request'
+        type: 'medicine_request',
+        price: priceValue,
+        stock: 0
       };
 
       // Upload to IPFS
       const ipfsResult = await uploadJSONToIPFS(requestData);
       
-      // Submit medicine request to contract (assuming there's a function for this)
-      const tx = await signerContract.requestMedicine(
+      const saved = addMedicineRequest({
+        ...requestData,
         doctorId,
-        formData.name,
-        ipfsResult.cid,
-        Math.floor(parseFloat(formData.price) * 100) // Convert to cents/smallest unit
-      );
-      
-      await tx.wait();
+        doctorAddress: account || null,
+        doctorName: doctorLabel || `Doctor ${doctorId}`,
+        medicineName: formData.name,
+        genericName: formData.genericName,
+        manufacturer: formData.manufacturer,
+        description: formData.description,
+        ipfsCid: ipfsResult.cid,
+        ipfsUrl: ipfsResult.ipfsUrl,
+        metadata: requestData,
+        status: 'pending'
+      });
+      setRequests((prev) => [saved, ...prev]);
 
       showToastMessage('Medicine request submitted successfully! Waiting for admin approval.');
       
@@ -145,21 +202,34 @@ export default function RequestMedicine() {
 
     } catch (error) {
       console.error('Medicine request error:', error);
-      showToastMessage('Failed to submit medicine request: ' + error.message, 'error');
+      const message = error?.message ? String(error.message) : 'Unknown error';
+      showToastMessage('Failed to submit medicine request: ' + message, 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="page-container">
+    <div className="request-medicine-page">
       <div className="page-header">
         <h1>🏥 Request New Medicine</h1>
         <p>Submit a request to add a new medicine to the system (requires admin approval)</p>
       </div>
 
+      {doctorLabel ? (
+        <div className="info-banner">
+          You are submitting as <strong>{doctorLabel}</strong>. Provide detailed information to help
+          the admin verify this medicine quickly.
+        </div>
+      ) : (
+        <div className="info-banner warning">
+          Connect your wallet and ensure your doctor profile is approved before submitting a
+          request.
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="form-container">
-        <div className="form-section">
+  <div className="form-section">
           <h3>📋 Basic Information</h3>
           <div className="form-grid">
             <div className="input-group">
@@ -385,20 +455,72 @@ export default function RequestMedicine() {
         <div className="form-actions">
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || !canSubmit}
             className="btn-primary"
+            title={canSubmit ? undefined : 'Connect with an approved doctor wallet to submit'}
           >
             {loading ? '⏳ Submitting Request...' : '🚀 Submit Medicine Request'}
           </button>
         </div>
       </form>
 
-      {showToast && (
-        <div className={`toast ${toastType} ${showToast ? 'show' : ''}`}>
-          <span>{toastMessage}</span>
-          <button onClick={() => setShowToast(false)}>✕</button>
-        </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={5000}
+          onDismiss={() => setToast(null)}
+        />
       )}
+
+      <div className="form-section recent-requests">
+        <h3>📦 Recent Requests</h3>
+        {requests.length === 0 ? (
+          <p className="empty-table">You have not submitted any medicine requests yet.</p>
+        ) : (
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Submitted</th>
+                  <th>Medicine</th>
+                  <th>Price</th>
+                  <th>Urgency</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((item) => (
+                  <tr key={item.id ?? item.ipfsCid ?? item.requestDate}>
+                    <td>{formatDate(item.requestDate) || '—'}</td>
+                    <td>
+                      <div className="doctor-info">
+                        <strong>{item.medicineName}</strong>
+                        <small>{item.genericName || 'Generic name pending'}</small>
+                      </div>
+                    </td>
+                    <td>
+                      {item.price !== null && item.price !== '' && Number.isFinite(Number(item.price))
+                        ? `${Number(item.price).toFixed(2)} ${item.currency}`
+                        : '—'}
+                    </td>
+                    <td>
+                      <span className={`urgency-pill ${(item.urgencyLevel || 'normal').toLowerCase()}`}>
+                        {item.urgencyLevel?.toUpperCase?.() || 'NORMAL'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${(item.status || 'pending').toLowerCase()}`}>
+                        {item.status?.toUpperCase?.() || 'PENDING'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,13 @@
 import { ethers } from "ethers";
 import { formatEntityId } from "./format.js";
+function resolveIpfsUri(uri) {
+  if (!uri) return null;
+  if (uri.startsWith("http://") || uri.startsWith("https://")) return uri;
+  if (uri.startsWith("ipfs://")) {
+    return `https://ipfs.io/ipfs/${uri.slice(7)}`;
+  }
+  return `https://ipfs.io/ipfs/${uri}`;
+}
 
 function toNumber(value) {
   if (value === undefined || value === null) return 0;
@@ -32,6 +40,20 @@ export async function fetchDoctors(contract, { onlyApproved = false } = {}) {
       successes: toNumber(row.successes)
     };
     entry.humanId = formatEntityId("DOC", entry.id);
+    entry.displayName = null;
+    if (entry.ipfs) {
+      try {
+        const url = resolveIpfsUri(entry.ipfs);
+        if (url) {
+          const response = await fetch(url);
+          if (response.ok) {
+            const profile = await response.json();
+            entry.displayName = profile?.name || profile?.fullName || null;
+          }
+        }
+      } catch {
+      }
+    }
     if (!onlyApproved || entry.approved) {
       result.push(entry);
     }
@@ -51,6 +73,20 @@ export async function fetchPatients(contract) {
       ipfs: row.ipfs
     };
     entry.humanId = formatEntityId("PAT", entry.id);
+    entry.displayName = null;
+    if (entry.ipfs) {
+      try {
+        const url = resolveIpfsUri(entry.ipfs);
+        if (url) {
+          const response = await fetch(url);
+          if (response.ok) {
+            const profile = await response.json();
+            entry.displayName = profile?.name || profile?.fullName || null;
+          }
+        }
+      } catch {
+      }
+    }
     result.push(entry);
   }
   return result;
@@ -71,6 +107,20 @@ export async function fetchMedicines(contract, { includeInactive = true } = {}) 
       active: row.active
     };
     entry.humanId = formatEntityId("MED", entry.id);
+    entry.displayName = null;
+    if (entry.ipfs) {
+      try {
+        const url = resolveIpfsUri(entry.ipfs);
+        if (url) {
+          const response = await fetch(url);
+          if (response.ok) {
+            const metadata = await response.json();
+            entry.displayName = metadata?.name || metadata?.title || null;
+          }
+        }
+      } catch {
+      }
+    }
     if (includeInactive || entry.active) {
       result.push(entry);
     }

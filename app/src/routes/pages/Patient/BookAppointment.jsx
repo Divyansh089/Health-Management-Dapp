@@ -67,10 +67,14 @@ export default function BookAppointment() {
   }
 
   const doctorOptions =
-    doctorsQuery.data?.map((doctor) => ({
-      value: doctor.id,
-      label: `${doctor.humanId || formatEntityId("DOC", doctor.id)} (${doctor.account.slice(0, 6)}…)`
-    })) || [];
+    doctorsQuery.data?.map((doctor) => {
+      const name = doctor.displayName?.trim?.();
+      const labelName = name && name.length ? name : doctor.humanId || formatEntityId("DOC", doctor.id);
+      return {
+        value: doctor.id,
+        label: `${labelName} (${doctor.account.slice(0, 6)}…)`
+      };
+    }) || [];
 
   return (
     <section className="page">

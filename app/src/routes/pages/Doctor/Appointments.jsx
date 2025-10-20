@@ -36,7 +36,8 @@ export default function DoctorAppointments() {
   const patients = useMemo(() => {
     const map = {};
     (patientsQuery.data || []).forEach((patient) => {
-      const label = patient.humanId || formatEntityId("PAT", patient.id);
+      const name = patient.displayName?.trim?.();
+      const label = name && name.length ? name : patient.humanId || formatEntityId("PAT", patient.id);
       map[patient.id] = {
         ...patient,
         humanId: label

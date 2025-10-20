@@ -85,20 +85,30 @@ export default function DoctorPrescriptions() {
       })
       .map((patientId) => {
         const patient = (patientsQuery.data || []).find((p) => p.id === patientId);
+        const name = patient?.displayName?.trim?.();
+        const labelName = name && name.length
+          ? name
+          : patient?.humanId || formatEntityId("PAT", patientId);
         return {
           value: patientId,
           label: patient
-            ? `${patient.humanId} (${patient.account.slice(0, 6)}…)`
-            : `${formatEntityId("PAT", patientId)}`
+            ? `${labelName} (${patient.account.slice(0, 6)}…)`
+            : `${labelName}`
         };
       });
   }, [appointmentsQuery.data, patientsQuery.data]);
 
   const medicineOptions = useMemo(() => {
-    return (medicinesQuery.data || []).map((medicine) => ({
-      value: medicine.id,
-      label: `${medicine.humanId || formatEntityId("MED", medicine.id)} — ${medicine.priceEth.toFixed(4)} ETH`
-    }));
+    return (medicinesQuery.data || []).map((medicine) => {
+      const name = medicine.displayName?.trim?.();
+      const labelName = name && name.length
+        ? name
+        : medicine.humanId || formatEntityId("MED", medicine.id);
+      return {
+        value: medicine.id,
+        label: `${labelName} — ${medicine.priceEth.toFixed(4)} ETH`
+      };
+    });
   }, [medicinesQuery.data]);
 
   return (
@@ -154,7 +164,15 @@ export default function DoctorPrescriptions() {
             {prescriptionsQuery.data.map((item) => {
               const medicine = medicinesQuery.data?.find((m) => m.id === item.medicineId);
               const patientRecord = patientsQuery.data?.find((p) => p.id === item.patientId);
+              const patientDisplay = patientRecord?.displayName?.trim?.();
+              const patientName = patientDisplay && patientDisplay.length
+                ? patientDisplay
+                : patientRecord?.humanId || formatEntityId("PAT", item.patientId);
               const patientLabel = patientRecord?.account || "Unknown";
+              const medicineDisplay = medicine?.displayName?.trim?.();
+              const medicineName = medicineDisplay && medicineDisplay.length
+                ? medicineDisplay
+                : medicine?.humanId || formatEntityId("MED", item.medicineId);
               return (
                 <li key={item.id} className="prescription-row">
                   <div>
@@ -162,15 +180,12 @@ export default function DoctorPrescriptions() {
                     <span className="table-sub">{formatDate(item.date)}</span>
                   </div>
                   <div>
-                    <span className="table-strong">
-                      {patientRecord?.humanId || formatEntityId("PAT", item.patientId)}
-                    </span>
+                    <span className="table-strong">{patientName}</span>
                     <span className="table-sub">{patientLabel}</span>
                   </div>
                   <div>
                     <span className="table-strong">
-                      {medicine?.humanId || formatEntityId("MED", item.medicineId)}{" "}
-                      {medicine ? `(${medicine.priceEth.toFixed(4)} ETH)` : ""}
+                      {medicineName} {medicine ? `(${medicine.priceEth.toFixed(4)} ETH)` : ""}
                     </span>
                     <span className="table-sub">{medicine?.ipfs}</span>
                   </div>

@@ -47,6 +47,65 @@
   50%{opacity:1}
   100%{opacity:.6}
 }
+
+.link-button {
+  appearance: none;
+  background: none;
+  border: none;
+  color: #1b6ef3;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0;
+  text-align: left;
+}
+
+.link-button:hover,
+.link-button:focus {
+  text-decoration: underline;
+}
+
+.details-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-top: 1rem;
+}
+
+.details-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pill-list li {
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.details-footer {
+  align-items: center;
+  border-top: 1px solid rgba(148, 163, 184, 0.3);
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
+
+.truncate {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* Medicine Requests Specific Styles */
 .doctor-info {
   display: flex;

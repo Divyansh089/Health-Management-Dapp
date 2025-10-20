@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNotifications } from "../../state/NotificationContext.jsx";
 import "./Toast.css";
 
 export default function Toast({ message, type = "info", duration = 4000, onDismiss }) {
   const [visible, setVisible] = useState(Boolean(message));
   const { pushNotification } = useNotifications();
+  const lastSignatureRef = useRef(null);
 
   useEffect(() => {
     if (!message) return;
@@ -18,6 +19,9 @@ export default function Toast({ message, type = "info", duration = 4000, onDismi
 
   useEffect(() => {
     if (!message) return;
+    const signature = `${type}|${message}`;
+    if (lastSignatureRef.current === signature) return;
+    lastSignatureRef.current = signature;
     const title = type === "error" ? "Error" : type === "success" ? "Success" : "Notification";
     pushNotification({ title, message, type, createdAt: Date.now() });
   }, [message, type, pushNotification]);

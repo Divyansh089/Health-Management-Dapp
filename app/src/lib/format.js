@@ -14,9 +14,20 @@ export function formatEth(valueWei, { suffix = " ETH", digits = 4 } = {}) {
 
 export function formatDate(timestamp) {
   if (!timestamp) return "";
-  const value = Number(timestamp);
-  const ms = value > 1e12 ? value : value * 1000;
-  const date = new Date(ms);
+  let date;
+  if (typeof timestamp === "string") {
+    const parsed = Number(timestamp);
+    if (Number.isFinite(parsed)) {
+      const ms = parsed > 1e12 ? parsed : parsed * 1000;
+      date = new Date(ms);
+    } else {
+      date = new Date(timestamp);
+    }
+  } else {
+    const value = Number(timestamp);
+    const ms = value > 1e12 ? value : value * 1000;
+    date = new Date(ms);
+  }
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleString();
 }
