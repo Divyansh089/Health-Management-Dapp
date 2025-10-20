@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { ethers } from 'ethers';
 import { useWeb3 } from '../../../state/Web3Provider.jsx';
 import { fetchFromIPFS } from '../../../lib/ipfs.js';
 import '../../../components/Tables/Table.css';
@@ -67,11 +68,23 @@ export default function MedicineRequests() {
       // Fetch full medicine data from IPFS
       const medicineData = await fetchFromIPFS(ipfsCid);
       
+      const priceValue = Number(medicineData.price);
+      if (!Number.isFinite(priceValue) || priceValue < 0) {
+        throw new Error('Invalid price in submitted metadata.');
+      }
+
+      const stockValue = Number(medicineData.stock ?? medicineData.quantity ?? 0);
+      if (!Number.isFinite(stockValue) || stockValue < 0) {
+        throw new Error('Invalid stock in submitted metadata.');
+      }
+
+      const metadataPointer = ipfsCid.startsWith('ipfs://') ? ipfsCid : `ipfs://${ipfsCid}`;
+
       // Add medicine to contract
       const tx = await signerContract.addMedicine(
-        medicineName,
-        ipfsCid,
-        Math.floor(parseFloat(medicineData.price) * 100) // Convert to smallest unit
+        metadataPointer,
+        ethers.parseEther(priceValue.toString()),
+        Math.trunc(stockValue)
       );
       
       await tx.wait();

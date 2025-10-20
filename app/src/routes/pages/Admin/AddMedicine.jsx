@@ -35,7 +35,8 @@ export default function AddMedicine() {
     storage: [],
     regulatoryId: "",
     ingredients: [],
-    price: ""
+    price: "",
+    stock: ""
   });
 
   const isAdmin = role === ROLES.ADMIN;
@@ -51,9 +52,21 @@ export default function AddMedicine() {
           photoMetadata = await uploadFileToIPFS(photoFile);
         }
         // Upload JSON metadata to IPFS
+        const numericPrice = Number(medicineData.price);
+        if (!Number.isFinite(numericPrice) || numericPrice < 0) {
+          throw new Error("Price must be a non-negative number.");
+        }
+
+        const numericStock = Number(medicineData.stock);
+        if (!Number.isFinite(numericStock) || numericStock < 0) {
+          throw new Error("Stock must be a non-negative number.");
+        }
+
         const { ipfsUrl } = await uploadJSONToIPFS({
           type: "medicine",
           ...medicineData,
+          price: numericPrice,
+          stock: numericStock,
           image: photoMetadata ? {
             cid: photoMetadata.cid,
             ipfsUrl: photoMetadata.ipfsUrl,
@@ -64,11 +77,12 @@ export default function AddMedicine() {
         });
 
         // Add medicine on-chain with IPFS hash and price
-        const priceWei = ethers.parseEther(medicineData.price.toString());
-        const tx = await signerContract.addMedicine(ipfsUrl, priceWei);
+        const priceWei = ethers.parseEther(numericPrice.toString());
+        const stockUnits = Math.trunc(numericStock);
+        const tx = await signerContract.addMedicine(ipfsUrl, priceWei, stockUnits);
         await tx.wait();
         
-        return { ipfsUrl, price: medicineData.price };
+        return { ipfsUrl, price: numericPrice };
       } finally {
         setIsUploading(false);
       }
@@ -88,7 +102,8 @@ export default function AddMedicine() {
         storage: [],
         regulatoryId: "",
         ingredients: [],
-        price: ""
+        price: "",
+        stock: ""
       });
       formRef.current?.reset();
     },
@@ -112,7 +127,8 @@ export default function AddMedicine() {
       storage: formData.storage.join(". "),
       regulatoryId: form.get("regulatoryId"),
       ingredients: formData.ingredients,
-      price: parseFloat(form.get("price"))
+      price: parseFloat(form.get("price")),
+      stock: parseInt(form.get("stock"), 10)
     };
 
     addMedicine.mutate({ ...medicineData, photoFile });
@@ -225,6 +241,18 @@ export default function AddMedicine() {
             placeholder="0.001"
             value={formData.price}
             onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+            required
+          />
+
+          <InputField
+            name="stock"
+            label="Initial Stock (units)"
+            type="number"
+            step="1"
+            min="0"
+            placeholder="100"
+            value={formData.stock}
+            onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
             required
           />
 
