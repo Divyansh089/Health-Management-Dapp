@@ -1,0 +1,45 @@
+.home-page{display:flex;flex-direction:column;gap:48px;padding:48px 32px 64px;max-width:1100px;margin:0 auto}
+.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:32px;align-items:center}
+.hero-copy h1{margin:0;font-size:2.8rem;color:#0f172a}
+.hero-copy p{margin:18px 0;color:#475569;font-size:1.08rem;line-height:1.7}
+.hero-network{margin-top:20px;padding:16px 18px;border-radius:16px;background:linear-gradient(135deg,rgba(30,136,229,.14),rgba(30,136,229,.04));border:1px solid rgba(30,136,229,.18);display:flex;flex-direction:column;gap:8px}
+.network-badge{display:inline-flex;align-items:center;gap:6px;background:#1e88e5;color:#fff;font-weight:700;text-transform:uppercase;font-size:.75rem;letter-spacing:.08em;padding:6px 10px;border-radius:999px;width:max-content}
+.hero-actions{display:flex;gap:16px;margin-top:28px}
+.primary-btn,.ghost-btn{border-radius:12px;font-weight:700;text-decoration:none;transition:transform .2s ease,filter .2s ease}
+.primary-btn{padding:14px 36px;font-size:1.05rem;background:#1e88e5;color:#fff;border:none;cursor:pointer}
+.ghost-btn{padding:12px 20px;border:1px solid rgba(15,23,42,.2);color:#0f172a;background:#fff}
+.primary-btn:hover,.ghost-btn:hover{transform:translateY(-2px);filter:brightness(.95)}
+.hero-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:18px;background:#fff;border-radius:22px;padding:24px;border:1px solid rgba(15,23,42,.08);box-shadow:0 14px 34px rgba(15,23,42,.1)}
+.stat span{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:#1e88e5;font-weight:600}
+.stat strong{display:block;font-size:1.7rem;color:#0f172a;margin-top:6px}
+.achievements-panel{display:flex;flex-direction:column;gap:24px}
+.achievements-panel h2{margin:0;font-size:2rem;color:#0f172a}
+.achievement-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+.achievement-card{background:#fff;border-radius:18px;padding:22px;border:1px solid rgba(148,163,184,.25);box-shadow:0 10px 26px rgba(15,23,42,.08);display:flex;flex-direction:column;gap:10px}
+.achievement-card h4{margin:0;font-size:1.1rem;color:#0f172a}
+.achievement-card p{margin:0;color:#64748b;line-height:1.6}
+.fees-panel{background:#fff;border-radius:22px;padding:28px;border:1px solid rgba(15,23,42,.08);box-shadow:0 16px 38px rgba(15,23,42,.08);display:flex;flex-direction:column;gap:18px}
+.fees-panel h2{margin:0;font-size:2rem;color:#0f172a}
+.fees-subtext{margin:0;color:#64748b}
+.fee-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px}
+.fee-card{background:linear-gradient(135deg,rgba(30,136,229,.14),rgba(30,136,229,.04));border-radius:18px;padding:18px;border:1px solid rgba(30,136,229,.18);display:flex;flex-direction:column;gap:6px}
+.fee-card span{font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;color:#1e88e5;font-weight:600}
+.fee-card strong{font-size:1.5rem;color:#0f172a}
+.live-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.metrics-card{background:#fff;border-radius:20px;padding:24px;border:1px solid rgba(15,23,42,.08);box-shadow:0 12px 28px rgba(15,23,42,.08);display:flex;flex-direction:column;gap:12px;color:#475569;line-height:1.6}
+.reviews-panel{display:flex;flex-direction:column;gap:24px}
+.reviews-panel h2{margin:0;font-size:2rem;color:#0f172a}
+.review-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.review-card{background:#fff;border-radius:20px;padding:22px;border:1px solid rgba(15,23,42,.08);box-shadow:0 12px 28px rgba(15,23,42,.08);display:flex;flex-direction:column;gap:14px}
+.review-card blockquote{margin:0;color:#0f172a;font-size:1rem;line-height:1.6}
+.review-name{font-weight:700;color:#0f172a}
+.review-role{display:block;font-size:.85rem;color:#64748b;margin-top:2px;text-transform:uppercase;letter-spacing:.08em}
+.home-footer{margin-top:24px;padding-top:32px;border-top:1px solid rgba(148,163,184,.3);display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;color:#475569}
+.home-footer h4{margin:0;font-size:1.2rem;color:#0f172a}
+.home-footer a{color:#1e88e5;text-decoration:none;margin-top:6px;display:inline-block}
+.footer-title{font-weight:700;color:#0f172a;text-transform:uppercase;font-size:.75rem;letter-spacing:.08em;display:block;margin-bottom:8px}
+@media (max-width:768px){
+  .home-page{padding:32px 20px 48px}
+  .hero{grid-template-columns:1fr}
+  .hero-actions{flex-direction:column;align-items:flex-start}
+}

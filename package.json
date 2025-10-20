@@ -1,0 +1,14 @@
+{
+  "name": "health-management-dapp",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Decentralized health management application (monorepo scaffold)",
+  "license": "MIT",
+  "scripts": {
+    "dev": "echo \"Add a front-end dev script (e.g., cd app && npm run dev)\"",
+    "lint": "echo \"Add linting (e.g., eslint) later\"",
+    "test": "echo \"Add Hardhat / front-end tests later\""
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

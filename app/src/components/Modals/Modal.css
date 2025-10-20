@@ -1,0 +1,391 @@
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.4);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:24px;z-index:200}
+.modal{background:#fff;border-radius:18px;padding:24px;max-width:400px;width:100%;box-shadow:0 20px 40px rgba(15,23,42,.25);display:flex;flex-direction:column;gap:16px}
+.modal h3{margin:0;font-size:1.2rem;color:#0f172a}
+.modal p{margin:0;color:#475569;line-height:1.5}
+.modal-actions{display:flex;justify-content:flex-end;gap:12px}
+.modal-cancel{padding:8px 14px;border-radius:10px;border:1px solid rgba(15,23,42,.15);background:#fff;font-weight:600;cursor:pointer}
+.modal-confirm{padding:8px 14px;border-radius:10px;border:none;background:#ef4444;color:#fff;font-weight:600;cursor:pointer}
+.modal-confirm:disabled,.modal-cancel:disabled{opacity:.6;cursor:not-allowed}
+
+/* Doctor Profile Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.large-modal {
+  max-width: 800px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0 24px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.5rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+}
+
+.modal-close:hover {
+  color: #374151;
+}
+
+.modal-body {
+  padding: 0 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: 24px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Profile Content Styles */
+.profile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-radius: 12px;
+}
+
+.profile-avatar {
+  font-size: 3rem;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.profile-basic {
+  flex: 1;
+}
+
+.profile-basic h3 {
+  margin: 0 0 4px 0;
+  color: #1f2937;
+  font-size: 1.4rem;
+}
+
+.specialty {
+  color: #3b82f6;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.qualification {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-badge.approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Profile Sections */
+.profile-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.profile-section h4 {
+  margin: 0 0 12px 0;
+  color: #1f2937;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Info Grid */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.info-item strong {
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.info-item span {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+/* Availability Grid */
+.availability-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.availability-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.availability-item strong {
+  color: #374151;
+}
+
+.availability-item span {
+  color: #6b7280;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Bio */
+.bio {
+  line-height: 1.6;
+  color: #4b5563;
+  margin: 0;
+}
+
+/* Blockchain Info */
+.blockchain-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wallet-address, .ipfs-link {
+  font-family: monospace;
+  font-size: 0.85rem;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+/* Loading and Error States */
+.loading-container, .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.error-container h3 {
+  margin: 0 0 8px 0;
+  color: #dc2626;
+}
+
+.error-container p {
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Button Styles */
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+}
+
+/* Medical Lists and Tags */
+.medical-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.medical-item {
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.allergy-tag {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  border: 1px solid #fecaca;
+}
+
+.condition-tag {
+  background: #fff7ed;
+  color: #ea580c;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  border: 1px solid #fed7aa;
+}
+
+/* Data source notice */
+.data-source-notice {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  color: #856404;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-content {
+    margin: 10px;
+    max-height: 95vh;
+  }
+  
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

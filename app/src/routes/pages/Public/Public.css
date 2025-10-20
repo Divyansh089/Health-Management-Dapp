@@ -1,0 +1,16 @@
+
+.page{display:flex;flex-direction:column;gap:24px;padding:32px;max-width:1100px;margin:0 auto}
+.page-header h2{margin:0;font-size:1.8rem;color:#0f172a}
+.page-header p{margin:6px 0 0;color:#64748b}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.panel{background:#fff;border-radius:18px;padding:24px;border:1px solid rgba(15,23,42,.08);box-shadow:0 10px 24px rgba(15,23,42,.06)}
+.skeleton-card{height:220px;animation:pulse 1.2s ease-in-out infinite;background:rgba(226,232,240,.6)}
+@keyframes pulse{
+  0%{opacity:.6}
+  50%{opacity:1}
+  100%{opacity:.6}
+}
+@media (max-width:768px){
+  .page{padding:20px}
+  .panel{padding:20px}
+}
