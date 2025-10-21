@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ethers } from "ethers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import InputField from "../../../components/Forms/InputField.jsx";
 import SelectField from "../../../components/Forms/SelectField.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
@@ -11,6 +12,7 @@ import { DOSAGE_FORMS, STORAGE_CONDITIONS } from "../../../lib/medicineConstants
 
 export default function AddMedicine() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { role, signerContract } = useWeb3();
   const [toast, setToast] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -81,6 +83,7 @@ export default function AddMedicine() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "medicines"] });
       setToast({ type: "success", message: "Medicine added successfully!" });
+      
       // Reset form
       setFormData({
         name: "",
@@ -97,6 +100,11 @@ export default function AddMedicine() {
         stock: ""
       });
       formRef.current?.reset();
+      
+      // Redirect to medicines page after a short delay to show the success message
+      setTimeout(() => {
+        navigate("/admin/medicines");
+      }, 1500);
     },
     onError: (error) => setToast({ type: "error", message: error.message || "Failed to add medicine." })
   });
