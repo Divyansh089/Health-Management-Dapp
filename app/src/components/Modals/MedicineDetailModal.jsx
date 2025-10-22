@@ -128,9 +128,21 @@ export default function MedicineDetailModal({
                 <img
                   src={imageSrc}
                   alt={`${displayName} preview`}
+                  onLoad={(event) => {
+                    
+                    const fallbackDiv = event.currentTarget.parentElement?.querySelector('.medicine-modal-thumb-fallback');
+                    if (fallbackDiv) {
+                      fallbackDiv.style.display = 'none';
+                    }
+                  }}
                   onError={(event) => {
                     event.currentTarget.parentElement?.classList.add("empty");
                     event.currentTarget.remove();
+                    
+                    const fallbackDiv = event.currentTarget.parentElement?.querySelector('.medicine-modal-thumb-fallback');
+                    if (fallbackDiv) {
+                      fallbackDiv.style.display = 'flex';
+                    }
                   }}
                 />
               )}
@@ -192,7 +204,7 @@ export default function MedicineDetailModal({
 
             <button
               type="button"
-              className="tertiary-btn medicine-toggle-btn"
+              className={`${medicine.active ? "danger-btn" : "secondary-btn"} medicine-toggle-btn`}
               onClick={() => onToggleActive?.(medicine)}
               disabled={togglePending}
             >

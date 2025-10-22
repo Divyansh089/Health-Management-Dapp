@@ -158,9 +158,16 @@ export async function fetchMedicines(contract, { includeInactive = true } = {}) 
             } else {
               entry.imageUrl = rawImage ? resolveIpfsUri(rawImage) : null;
             }
+          } else {
+            // Skip medicines with HTTP errors (500, 404, etc.)
+            console.log(`Skipping medicine ID ${entry.id} due to IPFS HTTP error: ${response.status}`);
+            continue;
           }
         }
-      } catch {
+      } catch (error) {
+        // Skip medicines with broken IPFS links (500 errors, network errors, etc.)
+        console.log(`Skipping medicine ID ${entry.id} due to IPFS error:`, error.message);
+        continue; // Skip this medicine entirely
       }
     }
     if (includeInactive || entry.active) {

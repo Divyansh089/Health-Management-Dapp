@@ -1,13 +1,13 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
 import SelectField from "../../../components/Forms/SelectField.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../../../lib/ipfs.js";
-import "./Onboarding.css";
+import "./Admin.css";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -25,6 +25,7 @@ const COMMON_CONDITIONS = [
 ];
 
 const createPatientFormState = () => ({
+  walletAddress: "",
   name: "",
   country: "IN",
   city: "",
@@ -34,33 +35,20 @@ const createPatientFormState = () => ({
   bloodGroup: "",
   allergies: [],
   conditions: [],
-  emergencyContact: "",
-  consent: false
+  emergencyContact: ""
 });
 
-export default function RegisterPatient() {
+export default function AdminAddPatient() {
   const navigate = useNavigate();
-  const { signerContract, readonlyContract } = useWeb3();
+  const { signerContract } = useWeb3();
   const [toast, setToast] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState(() => createPatientFormState());
   const formRef = useRef(null);
 
-  const feeQuery = useQuery({
-    queryKey: ["onboard", "patient-fee"],
-    enabled: !!readonlyContract,
-    queryFn: async () => {
-      const fee = await readonlyContract.patientRegFeeWei();
-      return {
-        wei: fee,
-        eth: Number(ethers.formatEther(fee))
-      };
-    }
-  });
-
-  const registerPatient = useMutation({
+  const addPatient = useMutation({
     mutationFn: async ({ photoFile, ...patientData }) => {
-      if (!signerContract) throw new Error("Connect your wallet before registering.");
+      if (!signerContract) throw new Error("Connect your wallet before adding a patient.");
       
       setIsUploading(true);
       try {
@@ -68,6 +56,7 @@ export default function RegisterPatient() {
         if (photoFile && photoFile.size > 0) {
           photoMetadata = await uploadFileToIPFS(photoFile);
         }
+        
         // Upload JSON metadata to IPFS
         const { ipfsUrl } = await uploadJSONToIPFS({
           type: "patient",
@@ -78,12 +67,13 @@ export default function RegisterPatient() {
             gatewayUrl: photoMetadata.gatewayUrl,
             name: photoMetadata.name
           } : undefined,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          addedByAdmin: true,
+          consent: true // Admin consent on behalf
         });
 
-        // Register on-chain with IPFS hash
-        // Pass address(0) for self-registration
-        const tx = await signerContract.registerPatient(ipfsUrl, ethers.ZeroAddress, { value: feeQuery.data.wei });
+        // Register patient with their wallet address (admin registration)
+        const tx = await signerContract.registerPatient(ipfsUrl, patientData.walletAddress);
         await tx.wait();
         
         return ipfsUrl;
@@ -92,16 +82,15 @@ export default function RegisterPatient() {
       }
     },
     onSuccess: () => {
-      setToast({ type: "success", message: "Welcome! Redirecting to patient dashboard..." });
+      setToast({ type: "success", message: "Patient added successfully! Redirecting to manage patients..." });
       setFormData(createPatientFormState());
       formRef.current?.reset();
       
-      // Redirect to patient dashboard after a short delay
       setTimeout(() => {
-        navigate("/patient");
+        navigate("/admin/patients");
       }, 2000);
     },
-    onError: (error) => setToast({ type: "error", message: error.message || "Registration failed." })
+    onError: (error) => setToast({ type: "error", message: error.message || "Failed to add patient." })
   });
 
   const handleSubmit = (event) => {
@@ -110,11 +99,6 @@ export default function RegisterPatient() {
     const walletAddress = form.get("walletAddress");
     const photoCandidate = form.get("photo");
     const photoFile = photoCandidate instanceof File && photoCandidate.size > 0 ? photoCandidate : null;
-    
-    if (!formData.consent) {
-      setToast({ type: "error", message: "Please provide consent to proceed." });
-      return;
-    }
 
     if (!ethers.isAddress(walletAddress)) {
       setToast({ type: "error", message: "Enter a valid wallet address starting with 0x." });
@@ -138,31 +122,39 @@ export default function RegisterPatient() {
         bloodGroup: form.get("bloodGroup")
       },
       allergies: formData.allergies,
-      conditions: formData.conditions,
-      consent: formData.consent
+      conditions: formData.conditions
     };
 
-    registerPatient.mutate({ ...patientData, photoFile });
+    addPatient.mutate({ ...patientData, photoFile });
   };
 
   return (
-    <section className="onboard-page">
+    <section className="page">
+      <div className="page-header">
+        <div>
+          <h2>Add New Patient</h2>
+          <p>Add a patient to the system using their wallet address.</p>
+        </div>
+        <div className="page-actions">
+          <button onClick={() => navigate("/admin/patients")} className="btn-secondary">
+            ← Back to Patients
+          </button>
+        </div>
+      </div>
+
       <div className="panel">
-        <h2>Patient Registration</h2>
-        <p>Create your secure health profile to book appointments and manage your medical records.</p>
-        
-  <form className="form-grid" onSubmit={handleSubmit} ref={formRef}>
+        <form className="form-grid" onSubmit={handleSubmit} ref={formRef}>
           <InputField
-            name="name"
-            label="Full Name"
-            placeholder="Ravi P"
+            name="walletAddress"
+            label="Patient's Wallet Address"
+            placeholder="0xabc123..."
             required
           />
 
           <InputField
-            name="walletAddress"
-            label="Wallet Address"
-            placeholder="0xabc123..."
+            name="name"
+            label="Full Name"
+            placeholder="Ravi P"
             required
           />
 
@@ -271,30 +263,21 @@ export default function RegisterPatient() {
           </div>
 
           <div className="form-group form-full-width">
-            <label className="consent-checkbox">
-              <input
-                type="checkbox"
-                checked={formData.consent}
-                onChange={(e) => setFormData(prev => ({ ...prev, consent: e.target.checked }))}
-                required
-              />
-              <span>
-                I consent to storing my health information securely on IPFS and understand that 
-                this data will be used for medical coordination within the HealthcareLite network.
-              </span>
-            </label>
+            <div className="admin-consent-notice">
+              <p><strong>Admin Note:</strong> By adding this patient, you are providing consent on their behalf for storing health information securely on IPFS within the HealthcareLite network.</p>
+            </div>
           </div>
 
           <button
             type="submit"
-            className="primary-btn form-full-width"
-            disabled={registerPatient.isPending || isUploading || !feeQuery.data || !formData.consent}
+            className="btn-add form-full-width"
+            disabled={addPatient.isPending || isUploading}
           >
             {isUploading
               ? "Uploading to IPFS..."
-              : registerPatient.isPending
-              ? "Submitting..."
-              : `Register (${feeQuery.data?.eth?.toFixed(4) ?? "…"} ETH)`}
+              : addPatient.isPending
+              ? "Adding Patient..."
+              : "Add Patient"}
           </button>
         </form>
       </div>

@@ -1,13 +1,12 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
-import SelectField from "../../../components/Forms/SelectField.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { uploadJSONToIPFS, uploadFileToIPFS } from "../../../lib/ipfs.js";
-import "./Onboarding.css";
+import "./Admin.css";
 
 const SPECIALTIES = [
   "Cardiology", "Internal Medicine", "Pediatrics", "Orthopedics", 
@@ -20,6 +19,7 @@ const LANGUAGES = ["English", "Hindi", "Tamil", "Telugu", "Bengali", "Marathi", 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const createDoctorFormState = () => ({
+  walletAddress: "",
   name: "",
   specialties: [],
   country: "IN",
@@ -35,29 +35,17 @@ const createDoctorFormState = () => ({
   availability: []
 });
 
-export default function RegisterDoctor() {
+export default function AdminAddDoctor() {
   const navigate = useNavigate();
-  const { signerContract, readonlyContract } = useWeb3();
+  const { signerContract } = useWeb3();
   const [toast, setToast] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const formRef = useRef(null);
   const [formData, setFormData] = useState(() => createDoctorFormState());
 
-  const feeQuery = useQuery({
-    queryKey: ["onboard", "doctor-fee"],
-    enabled: !!readonlyContract,
-    queryFn: async () => {
-      const fee = await readonlyContract.doctorRegFeeWei();
-      return {
-        wei: fee,
-        eth: Number(ethers.formatEther(fee))
-      };
-    }
-  });
-
-  const registerDoctor = useMutation({
+  const addDoctor = useMutation({
     mutationFn: async ({ photoFile, ...doctorData }) => {
-      if (!signerContract) throw new Error("Connect your wallet before registering.");
+      if (!signerContract) throw new Error("Connect your wallet before adding a doctor.");
       
       setIsUploading(true);
       try {
@@ -65,6 +53,7 @@ export default function RegisterDoctor() {
         if (photoFile && photoFile.size > 0) {
           photoMetadata = await uploadFileToIPFS(photoFile);
         }
+        
         // Upload JSON metadata to IPFS
         const { ipfsUrl } = await uploadJSONToIPFS({
           type: "doctor",
@@ -75,12 +64,12 @@ export default function RegisterDoctor() {
             gatewayUrl: photoMetadata.gatewayUrl,
             name: photoMetadata.name
           } : undefined,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          addedByAdmin: true
         });
 
-        // Register on-chain with IPFS hash
-        // Pass address(0) for self-registration
-        const tx = await signerContract.registerDoctor(ipfsUrl, ethers.ZeroAddress, { value: feeQuery.data.wei });
+        // Register doctor with their wallet address (admin registration)
+        const tx = await signerContract.registerDoctor(ipfsUrl, doctorData.walletAddress);
         await tx.wait();
         
         return ipfsUrl;
@@ -89,16 +78,15 @@ export default function RegisterDoctor() {
       }
     },
     onSuccess: () => {
-      setToast({ type: "success", message: "Registration submitted. Redirecting to doctor dashboard..." });
+      setToast({ type: "success", message: "Doctor added successfully! Redirecting to manage doctors..." });
       setFormData(createDoctorFormState());
       formRef.current?.reset();
       
-      // Redirect to doctor dashboard after a short delay
       setTimeout(() => {
-        navigate("/doctor");
+        navigate("/admin/doctors");
       }, 2000);
     },
-    onError: (error) => setToast({ type: "error", message: error.message || "Registration failed." })
+    onError: (error) => setToast({ type: "error", message: error.message || "Failed to add doctor." })
   });
 
   const handleSubmit = (event) => {
@@ -138,7 +126,7 @@ export default function RegisterDoctor() {
       }
     };
 
-    registerDoctor.mutate({ ...doctorData, photoFile });
+    addDoctor.mutate({ ...doctorData, photoFile });
   };
 
   const addAvailability = () => {
@@ -165,25 +153,32 @@ export default function RegisterDoctor() {
   };
 
   return (
-    <section className="onboard-page">
+    <section className="page">
+      <div className="page-header">
+        <div>
+          <h2>Add New Doctor</h2>
+          <p>Add a doctor to the system using their wallet address.</p>
+        </div>
+        <div className="page-actions">
+          <button onClick={() => navigate("/admin/doctors")} className="btn-secondary">
+            ← Back to Doctors
+          </button>
+        </div>
+      </div>
+
       <div className="panel">
-        <h2>Doctor Registration</h2>
-        <p>
-          Complete your professional profile to join HealthcareLite. Admin approval is required
-          before you can prescribe medicines.
-        </p>
-  <form className="form-grid" onSubmit={handleSubmit} ref={formRef}>
+        <form className="form-grid" onSubmit={handleSubmit} ref={formRef}>
           <InputField
-            name="name"
-            label="Full Name"
-            placeholder="Dr. A. Sharma"
+            name="walletAddress"
+            label="Doctor's Wallet Address"
+            placeholder="0xabc123..."
             required
           />
 
           <InputField
-            name="walletAddress"
-            label="Wallet Address"
-            placeholder="0xabc123..."
+            name="name"
+            label="Full Name"
+            placeholder="Dr. A. Sharma"
             required
           />
 
@@ -314,7 +309,7 @@ export default function RegisterDoctor() {
           <div className="form-group form-full-width">
             <div className="availability-header">
               <label>Availability</label>
-              <button type="button" onClick={addAvailability} className="secondary-btn">
+              <button type="button" onClick={addAvailability} className="btn-secondary">
                 Add Schedule
               </button>
             </div>
@@ -352,14 +347,14 @@ export default function RegisterDoctor() {
 
           <button
             type="submit"
-            className="primary-btn form-full-width"
-            disabled={registerDoctor.isPending || isUploading || !feeQuery.data}
+            className="btn-add form-full-width"
+            disabled={addDoctor.isPending || isUploading}
           >
             {isUploading
               ? "Uploading to IPFS..."
-              : registerDoctor.isPending
-              ? "Submitting..."
-              : `Register (${feeQuery.data?.eth?.toFixed(4) ?? "…"} ETH)`}
+              : addDoctor.isPending
+              ? "Adding Doctor..."
+              : "Add Doctor"}
           </button>
         </form>
       </div>

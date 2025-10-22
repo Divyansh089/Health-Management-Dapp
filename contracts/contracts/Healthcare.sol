@@ -5,7 +5,7 @@ contract HealthcareLite {
     // --- Roles ---
     struct Doctor {
         uint256 id;
-        string ipfs;          // profile JSON
+        string ipfs; // profile JSON
         address account;
         bool approved;
         uint256 appointments; // simple stats
@@ -14,16 +14,16 @@ contract HealthcareLite {
 
     struct Patient {
         uint256 id;
-        string ipfs;          // profile JSON
+        string ipfs; // profile JSON
         address account;
     }
 
     // --- Domain ---
     struct Medicine {
         uint256 id;
-        string ipfs;          // metadata JSON
-        uint256 priceWei;     // price per unit
-        uint256 stock;        // units available
+        string ipfs; // metadata JSON
+        uint256 priceWei; // price per unit
+        uint256 stock; // units available
         bool active;
     }
 
@@ -31,7 +31,7 @@ contract HealthcareLite {
         uint256 id;
         uint256 patientId;
         uint256 doctorId;
-        uint256 startAt;      // unix timestamp
+        uint256 startAt; // unix timestamp
         bool open;
     }
 
@@ -40,7 +40,7 @@ contract HealthcareLite {
         uint256 medicineId;
         uint256 patientId;
         uint256 doctorId;
-        uint256 date;         // unix timestamp
+        uint256 date; // unix timestamp
     }
 
     // --- Storage ---
@@ -62,7 +62,7 @@ contract HealthcareLite {
     mapping(uint256 => Appointment) public appointments;
     mapping(uint256 => Prescription) public prescriptions;
 
-    mapping(address => uint256) public doctorIdByAddress;  // 0 if none
+    mapping(address => uint256) public doctorIdByAddress; // 0 if none
     mapping(address => uint256) public patientIdByAddress; // 0 if none
 
     // --- Events ---
@@ -75,11 +75,26 @@ contract HealthcareLite {
     event MedicineStock(uint256 id, uint256 stock);
     event MedicineActive(uint256 id, bool active);
 
-    event AppointmentBooked(uint256 id, uint256 patientId, uint256 doctorId, uint256 startAt);
+    event AppointmentBooked(
+        uint256 id,
+        uint256 patientId,
+        uint256 doctorId,
+        uint256 startAt
+    );
     event AppointmentCompleted(uint256 id);
 
-    event MedicinePrescribed(uint256 id, uint256 medicineId, uint256 patientId, uint256 doctorId);
-    event MedicineBought(uint256 patientId, uint256 medicineId, uint256 qty, uint256 paidWei);
+    event MedicinePrescribed(
+        uint256 id,
+        uint256 medicineId,
+        uint256 patientId,
+        uint256 doctorId
+    );
+    event MedicineBought(
+        uint256 patientId,
+        uint256 medicineId,
+        uint256 qty,
+        uint256 paidWei
+    );
 
     event FeesUpdated(uint256 doctorReg, uint256 patientReg, uint256 apptFee);
     event AdminUpdated(address newAdmin);
@@ -123,7 +138,11 @@ contract HealthcareLite {
         doctorRegFeeWei = _doctorRegFeeWei;
         patientRegFeeWei = _patientRegFeeWei;
         appointmentFeeWei = _appointmentFeeWei;
-        emit FeesUpdated(_doctorRegFeeWei, _patientRegFeeWei, _appointmentFeeWei);
+        emit FeesUpdated(
+            _doctorRegFeeWei,
+            _patientRegFeeWei,
+            _appointmentFeeWei
+        );
     }
 
     function setAdmin(address payable _new) external onlyAdmin {
@@ -132,10 +151,20 @@ contract HealthcareLite {
         emit AdminUpdated(_new);
     }
 
-    function addMedicine(string calldata ipfs, uint256 priceWei, uint256 stock) external onlyAdmin {
+    function addMedicine(
+        string calldata ipfs,
+        uint256 priceWei,
+        uint256 stock
+    ) external onlyAdmin {
         require(priceWei > 0, "PRICE_ZERO");
         medicineCount++;
-        medicines[medicineCount] = Medicine(medicineCount, ipfs, priceWei, stock, true);
+        medicines[medicineCount] = Medicine(
+            medicineCount,
+            ipfs,
+            priceWei,
+            stock,
+            true
+        );
         emit MedicineAdded(medicineCount, priceWei, stock);
     }
 
@@ -165,44 +194,87 @@ contract HealthcareLite {
     }
 
     // --- Registration ---
-    function registerDoctor(string calldata ipfs) external payable nonReentrant {
-        require(msg.value == doctorRegFeeWei, "BAD_FEE");
-        require(doctorIdByAddress[msg.sender] == 0, "DOC_EXISTS");
+    function registerDoctor(
+        string calldata ipfs,
+        address doctorAddress
+    ) external payable nonReentrant {
+        // If doctorAddress is provided (non-zero), caller must be admin
+        // If doctorAddress is zero, use msg.sender (self-registration)
+        address targetAddress;
+
+        if (doctorAddress != address(0)) {
+            require(msg.sender == admin, "ADMIN_ONLY");
+            require(msg.value == 0, "NO_FEE_FOR_ADMIN");
+            targetAddress = doctorAddress;
+        } else {
+            require(msg.value == doctorRegFeeWei, "BAD_FEE");
+            targetAddress = msg.sender;
+        }
+
+        require(doctorIdByAddress[targetAddress] == 0, "DOC_EXISTS");
 
         doctorCount++;
         doctors[doctorCount] = Doctor({
             id: doctorCount,
             ipfs: ipfs,
-            account: msg.sender,
+            account: targetAddress,
             approved: false,
             appointments: 0,
             successes: 0
         });
-        doctorIdByAddress[msg.sender] = doctorCount;
+        doctorIdByAddress[targetAddress] = doctorCount;
 
-        admin.transfer(msg.value);
-        emit DoctorRegistered(doctorCount, msg.sender);
+        // Only collect fee for self-registration
+        if (doctorAddress == address(0)) {
+            admin.transfer(msg.value);
+        }
+
+        emit DoctorRegistered(doctorCount, targetAddress);
     }
 
-    function registerPatient(string calldata ipfs) external payable nonReentrant {
-        require(msg.value == patientRegFeeWei, "BAD_FEE");
-        require(patientIdByAddress[msg.sender] == 0, "PAT_EXISTS");
+    function registerPatient(
+        string calldata ipfs,
+        address patientAddress
+    ) external payable nonReentrant {
+        address targetAddress;
+
+        if (patientAddress != address(0)) {
+            require(msg.sender == admin, "ADMIN_ONLY");
+            require(msg.value == 0, "NO_FEE_FOR_ADMIN");
+            targetAddress = patientAddress;
+        } else {
+            require(msg.value == patientRegFeeWei, "BAD_FEE");
+            targetAddress = msg.sender;
+        }
+
+        require(patientIdByAddress[targetAddress] == 0, "PAT_EXISTS");
 
         patientCount++;
-        patients[patientCount] = Patient({ id: patientCount, ipfs: ipfs, account: msg.sender });
-        patientIdByAddress[msg.sender] = patientCount;
+        patients[patientCount] = Patient({
+            id: patientCount,
+            ipfs: ipfs,
+            account: targetAddress
+        });
+        patientIdByAddress[targetAddress] = patientCount;
 
-        admin.transfer(msg.value);
-        emit PatientRegistered(patientCount, msg.sender);
+        // Only collect fee for self-registration
+        if (patientAddress == address(0)) {
+            admin.transfer(msg.value);
+        }
+
+        emit PatientRegistered(patientCount, targetAddress);
     }
 
     // --- Appointments ---
-    function bookAppointment(uint256 patientId, uint256 doctorId, uint256 startAt)
-        external
-        payable
-        nonReentrant
-    {
-        require(patientIdByAddress[msg.sender] == patientId && patientId != 0, "NOT_PATIENT");
+    function bookAppointment(
+        uint256 patientId,
+        uint256 doctorId,
+        uint256 startAt
+    ) external payable nonReentrant {
+        require(
+            patientIdByAddress[msg.sender] == patientId && patientId != 0,
+            "NOT_PATIENT"
+        );
         require(doctorId > 0 && doctorId <= doctorCount, "NO_DOC");
         require(doctors[doctorId].approved, "DOC_NOT_APPROVED");
         require(msg.value == appointmentFeeWei, "BAD_FEE");
@@ -228,8 +300,13 @@ contract HealthcareLite {
         emit AppointmentBooked(appointmentCount, patientId, doctorId, startAt);
     }
 
-    function completeAppointment(uint256 appointmentId) external onlyRegisteredDoctor {
-        require(appointmentId > 0 && appointmentId <= appointmentCount, "NO_APPT");
+    function completeAppointment(
+        uint256 appointmentId
+    ) external onlyRegisteredDoctor {
+        require(
+            appointmentId > 0 && appointmentId <= appointmentCount,
+            "NO_APPT"
+        );
         Appointment storage ap = appointments[appointmentId];
         require(ap.open, "CLOSED");
         require(doctors[ap.doctorId].account == msg.sender, "NOT_ASSIGNED");
@@ -241,7 +318,10 @@ contract HealthcareLite {
     }
 
     // --- Prescriptions (approved doctors only) ---
-    function prescribe(uint256 patientId, uint256 medicineId) external onlyApprovedDoctor {
+    function prescribe(
+        uint256 patientId,
+        uint256 medicineId
+    ) external onlyApprovedDoctor {
         require(patientId > 0 && patientId <= patientCount, "NO_PAT");
         require(medicineId > 0 && medicineId <= medicineCount, "NO_MED");
 
@@ -254,16 +334,24 @@ contract HealthcareLite {
             date: block.timestamp
         });
 
-        emit MedicinePrescribed(prescriptionCount, medicineId, patientId, doctorIdByAddress[msg.sender]);
+        emit MedicinePrescribed(
+            prescriptionCount,
+            medicineId,
+            patientId,
+            doctorIdByAddress[msg.sender]
+        );
     }
 
     // --- Commerce ---
-    function buyMedicine(uint256 patientId, uint256 medicineId, uint256 qty)
-        external
-        payable
-        nonReentrant
-    {
-        require(patientIdByAddress[msg.sender] == patientId && patientId != 0, "NOT_PATIENT");
+    function buyMedicine(
+        uint256 patientId,
+        uint256 medicineId,
+        uint256 qty
+    ) external payable nonReentrant {
+        require(
+            patientIdByAddress[msg.sender] == patientId && patientId != 0,
+            "NOT_PATIENT"
+        );
         require(medicineId > 0 && medicineId <= medicineCount, "NO_MED");
         require(qty > 0, "QTY_ZERO");
 
@@ -289,7 +377,9 @@ contract HealthcareLite {
         return patientIdByAddress[account];
     }
 
-    function getAppointmentsByPatient(uint256 patientId) external view returns (Appointment[] memory) {
+    function getAppointmentsByPatient(
+        uint256 patientId
+    ) external view returns (Appointment[] memory) {
         uint256 count;
         for (uint256 i = 1; i <= appointmentCount; i++) {
             if (appointments[i].patientId == patientId) count++;
@@ -297,12 +387,15 @@ contract HealthcareLite {
         Appointment[] memory list = new Appointment[](count);
         uint256 idx;
         for (uint256 i = 1; i <= appointmentCount; i++) {
-            if (appointments[i].patientId == patientId) list[idx++] = appointments[i];
+            if (appointments[i].patientId == patientId)
+                list[idx++] = appointments[i];
         }
         return list;
     }
 
-    function getAppointmentsByDoctor(uint256 doctorId) external view returns (Appointment[] memory) {
+    function getAppointmentsByDoctor(
+        uint256 doctorId
+    ) external view returns (Appointment[] memory) {
         uint256 count;
         for (uint256 i = 1; i <= appointmentCount; i++) {
             if (appointments[i].doctorId == doctorId) count++;
@@ -310,7 +403,8 @@ contract HealthcareLite {
         Appointment[] memory list = new Appointment[](count);
         uint256 idx;
         for (uint256 i = 1; i <= appointmentCount; i++) {
-            if (appointments[i].doctorId == doctorId) list[idx++] = appointments[i];
+            if (appointments[i].doctorId == doctorId)
+                list[idx++] = appointments[i];
         }
         return list;
     }

@@ -86,8 +86,11 @@ export default function ManageDoctors() {
           <p>Review and manage registered doctors.</p>
         </div>
         <div className="page-actions">
-          <a href="/onboard/doctor" className="btn-add">
-            ➕ Add Doctor
+          <a href="/admin/add-doctor" className="btn-add">
+            ➕ Add Doctor by Wallet
+          </a>
+          <a href="/onboard/doctor" className="btn-add secondary">
+            👤 Self Registration Form
           </a>
         </div>
       </header>
