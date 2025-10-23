@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const CONTRACT_NAME = process.env.CONTRACT_NAME || "HealthcareLite";
+const CONTRACT_NAME = process.env.CONTRACT_NAME || "Healthcare";
 const ADDRESS = process.env.LAST_DEPLOYED_ADDRESS;
 if (!ADDRESS) throw new Error("Set LAST_DEPLOYED_ADDRESS=0x...");
 
