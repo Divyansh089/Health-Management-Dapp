@@ -27,7 +27,6 @@ export default function AddMedicine() {
     description: "",
     storage: [],
     regulatoryId: "",
-    ingredients: [],
     price: "",
     stock: ""
   });
@@ -95,7 +94,6 @@ export default function AddMedicine() {
         description: "",
         storage: [],
         regulatoryId: "",
-        ingredients: [],
         price: "",
         stock: ""
       });
@@ -125,29 +123,11 @@ export default function AddMedicine() {
       description: form.get("description"),
       storage: formData.storage.join(". "),
       regulatoryId: form.get("regulatoryId"),
-      ingredients: formData.ingredients,
       price: parseFloat(form.get("price")),
       stock: parseInt(form.get("stock"), 10)
     };
 
     addMedicine.mutate({ ...medicineData, photoFile });
-  };
-
-  const addIngredient = () => {
-    const ingredient = prompt("Enter ingredient name:");
-    if (ingredient && ingredient.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        ingredients: [...prev.ingredients, ingredient.trim()]
-      }));
-    }
-  };
-
-  const removeIngredient = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      ingredients: prev.ingredients.filter((_, i) => i !== index)
-    }));
   };
 
   if (!isAdmin) {
@@ -306,31 +286,6 @@ export default function AddMedicine() {
                 </label>
               ))}
             </div>
-          </div>
-
-          <div className="form-group form-full-width">
-            <div className="ingredients-header">
-              <label>Ingredients</label>
-              <button type="button" onClick={addIngredient} className="secondary-btn">
-                Add Ingredient
-              </button>
-            </div>
-            {formData.ingredients.length > 0 && (
-              <div className="ingredients-list">
-                {formData.ingredients.map((ingredient, index) => (
-                  <div key={index} className="ingredient-item">
-                    <span>{ingredient}</span>
-                    <button 
-                      type="button" 
-                      onClick={() => removeIngredient(index)}
-                      className="remove-btn"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           <button

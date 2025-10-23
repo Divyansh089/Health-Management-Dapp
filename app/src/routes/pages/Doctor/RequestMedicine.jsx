@@ -5,7 +5,7 @@ import {
   addMedicineRequest,
   getMedicineRequests
 } from "../../../lib/medicineRequests.js";
-import { uploadJSONToIPFS } from "../../../lib/ipfs.js";
+import { uploadJSONToIPFS, uploadFileToIPFS } from "../../../lib/ipfs.js";
 import { DOSAGE_FORMS, STORAGE_CONDITIONS } from "../../../lib/medicineConstants.js";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
@@ -24,12 +24,9 @@ export default function RequestMedicine() {
     name: "",
     genericName: "",
     manufacturer: "",
-    imageUrl: "",
     description: "",
     dosageForm: "",
     strength: "",
-    therapeuticClass: "",
-    ingredients: [""],
     batch: "",
     expiry: "",
     regulatoryId: "",
@@ -80,32 +77,6 @@ export default function RequestMedicine() {
     }));
   };
 
-  const handleIngredientChange = (index, value) => {
-    const newIngredients = [...formData.ingredients];
-    newIngredients[index] = value;
-    setFormData(prev => ({
-      ...prev,
-      ingredients: newIngredients
-    }));
-  };
-
-  const addIngredient = () => {
-    setFormData(prev => ({
-      ...prev,
-      ingredients: [...prev.ingredients, ""]
-    }));
-  };
-
-  const removeIngredient = (index) => {
-    if (formData.ingredients.length > 1) {
-      const newIngredients = formData.ingredients.filter((_, i) => i !== index);
-      setFormData(prev => ({
-        ...prev,
-        ingredients: newIngredients
-      }));
-    }
-  };
-
   const toggleStorageCondition = (condition) => {
     setFormData((prev) => {
       const hasCondition = prev.storage.includes(condition);
@@ -142,6 +113,10 @@ export default function RequestMedicine() {
     try {
       setLoading(true);
 
+      // Get form data including file
+      const form = new FormData(e.currentTarget);
+      const imageFile = form.get("image");
+      
       // Validate required fields
       const requiredFields = [
         "name",
@@ -176,29 +151,24 @@ export default function RequestMedicine() {
         return;
       }
 
-      const ingredients = formData.ingredients
-        .map((ingredient) => ingredient.trim())
-        .filter(Boolean);
-
-      if (ingredients.length === 0) {
-        showToastMessage('Please provide at least one ingredient', 'error');
-        return;
-      }
-
       const storageNotes = formData.storage;
       if (storageNotes.length === 0) {
         showToastMessage('Select at least one storage condition', 'error');
         return;
       }
 
-      const imageUrl = (formData.imageUrl || '').trim();
+      // Upload image to IPFS if provided
+      let imageUrl = null;
+      if (imageFile && imageFile.size > 0) {
+        const imageResult = await uploadFileToIPFS(imageFile);
+        imageUrl = imageResult.gatewayUrl || imageResult.ipfsUrl;
+      }
 
       const clientRequestId = generateClientRequestId();
 
       // Prepare medicine request data
       const requestData = {
         ...formData,
-        ingredients,
         storage: storageNotes,
         batch: formData.batch,
         expiry: formData.expiry,
@@ -246,12 +216,9 @@ export default function RequestMedicine() {
         name: '',
         genericName: '',
         manufacturer: '',
-        imageUrl: '',
         description: '',
         dosageForm: '',
         strength: '',
-        therapeuticClass: '',
-        ingredients: [''],
         batch: '',
         expiry: '',
         regulatoryId: '',
@@ -331,14 +298,14 @@ export default function RequestMedicine() {
             </div>
 
             <div className="input-group">
-              <label>Image URL</label>
+              <label>Medicine Image</label>
               <input
-                type="url"
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleChange}
-                placeholder="https://gateway.pinata.cloud/ipfs/..."
+                type="file"
+                name="image"
+                accept="image/*"
+                placeholder="Upload medicine image..."
               />
+              <small style={{color: '#666', fontSize: '0.9em'}}>Optional. Upload a product image (JPG, PNG, GIF)</small>
             </div>
 
             <div className="input-group">
@@ -379,48 +346,6 @@ export default function RequestMedicine() {
                 placeholder="Brief description of the medicine..."
                 rows={3}
                 required
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <h3>🧪 Composition & Therapeutic Info</h3>
-          <div className="form-grid">
-            <div className="input-group full-width">
-              <label>Ingredients *</label>
-              {formData.ingredients.map((ingredient, index) => (
-                <div key={index} className="ingredient-input">
-                  <input
-                    type="text"
-                    value={ingredient}
-                    onChange={(e) => handleIngredientChange(index, e.target.value)}
-                    placeholder="e.g., Acetaminophen 500mg"
-                  />
-                  {formData.ingredients.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeIngredient(index)}
-                      className="btn-remove"
-                    >
-                      ❌
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button type="button" onClick={addIngredient} className="btn-add">
-                ➕ Add Ingredient
-              </button>
-            </div>
-
-            <div className="input-group">
-              <label>Therapeutic Class</label>
-              <input
-                type="text"
-                name="therapeuticClass"
-                value={formData.therapeuticClass}
-                onChange={handleChange}
-                placeholder="e.g., Analgesic, Antibiotic"
               />
             </div>
           </div>
