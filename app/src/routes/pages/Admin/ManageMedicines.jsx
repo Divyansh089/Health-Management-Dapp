@@ -648,15 +648,19 @@ export default function ManageMedicines() {
               key={medicine.id}
               className={`medicine-strip ${medicine.active ? "active" : "inactive"}`}
             >
-              <div className={`strip-thumb ${imageUrl ? "" : "show-fallback"}`}>
-                <div className="strip-thumb-fallback">{fallbackInitial}</div>
-                {imageUrl && (
+              <div className="strip-thumb">
+                {!imageUrl ? (
+                  <div className="strip-thumb-fallback">{fallbackInitial}</div>
+                ) : (
                   <img
                     src={imageUrl}
                     alt={`${displayName} preview`}
                     onError={(event) => {
-                      event.currentTarget.parentElement?.classList.add("show-fallback");
-                      event.currentTarget.remove();
+                      // Replace the failed image with fallback
+                      const fallbackDiv = document.createElement('div');
+                      fallbackDiv.className = 'strip-thumb-fallback';
+                      fallbackDiv.textContent = fallbackInitial;
+                      event.currentTarget.parentElement?.replaceChild(fallbackDiv, event.currentTarget);
                     }}
                   />
                 )}
