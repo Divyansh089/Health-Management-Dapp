@@ -7,8 +7,9 @@ export default function Navbar() {
   const location = useLocation();
   const { role } = useWeb3();
   const onLanding = location.pathname === "/";
+  const onRegistration = location.pathname.startsWith("/onboard/");
 
-  if (!onLanding && role) {
+  if ((!onLanding && role) || onRegistration) {
     return null;
   }
 

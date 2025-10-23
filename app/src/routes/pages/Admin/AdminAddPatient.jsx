@@ -11,7 +11,9 @@ import "./Admin.css";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-const AGE_RANGES = ["0-17", "18-25", "26-35", "36-45", "46-55", "56-65", "65+"];
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia", "Austria", "Bangladesh", "Belgium", "Brazil", "Canada", "Chile", "China", "Colombia", "Denmark", "Egypt", "Finland", "France", "Germany", "India", "Indonesia", "Iran", "Iraq", "Italy", "Japan", "Jordan", "Kenya", "Malaysia", "Mexico", "Netherlands", "New Zealand", "Nigeria", "Norway", "Pakistan", "Philippines", "Poland", "Russia", "Saudi Arabia", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkey", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Vietnam"
+];
 
 const COMMON_ALLERGIES = [
   "Penicillin", "Aspirin", "Peanuts", "Shellfish", "Eggs", "Milk", 
@@ -24,15 +26,32 @@ const COMMON_CONDITIONS = [
   "Mental Health Conditions", "Autoimmune Disorders"
 ];
 
+// Helper function to calculate age from date of birth
+const calculateAge = (dateOfBirth) => {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+};
+
 const createPatientFormState = () => ({
   walletAddress: "",
   name: "",
-  country: "IN",
+  country: "India",
   city: "",
   timezone: "Asia/Kolkata",
   email: "",
-  ageRange: "",
+  dateOfBirth: "",
   bloodGroup: "",
+  contractNumber: "",
+  address: "",
+  currentMedications: "",
   allergies: [],
   conditions: [],
   emergencyContact: ""
@@ -105,24 +124,36 @@ export default function AdminAddPatient() {
       return;
     }
 
+    const dateOfBirth = form.get("dateOfBirth");
+    if (dateOfBirth && new Date(dateOfBirth) > new Date()) {
+      setToast({ type: "error", message: "Date of birth cannot be in the future." });
+      return;
+    }
+
+    const calculatedAge = dateOfBirth ? calculateAge(dateOfBirth) : null;
+
     const patientData = {
       walletAddress,
       name: form.get("name"),
       location: {
         country: form.get("country"),
         city: form.get("city"),
-        timezone: form.get("timezone")
+        timezone: form.get("timezone"),
+        address: form.get("address")
       },
       contact: {
         email: form.get("email"),
-        emergency: form.get("emergencyContact")
+        emergency: form.get("emergencyContact"),
+        contractNumber: form.get("contractNumber")
       },
       profile: {
-        ageRange: form.get("ageRange"),
+        dateOfBirth: dateOfBirth,
+        age: calculatedAge,
         bloodGroup: form.get("bloodGroup")
       },
       allergies: formData.allergies,
-      conditions: formData.conditions
+      conditions: formData.conditions,
+      currentMedications: form.get("currentMedications") || ""
     };
 
     addPatient.mutate({ ...patientData, photoFile });
@@ -170,10 +201,24 @@ export default function AdminAddPatient() {
             <span className="form-helper">Optional. Supports JPG, PNG or GIF under 5&nbsp;MB.</span>
           </div>
 
+          <SelectField
+            name="country"
+            label="Country"
+            options={COUNTRIES.map(country => ({ value: country, label: country }))}
+            required
+          />
+
           <InputField
             name="city"
             label="City"
             placeholder="Bhopal"
+            required
+          />
+
+          <InputField
+            name="address"
+            label="Address"
+            placeholder="123 Main Street, Apartment 4B"
             required
           />
 
@@ -185,10 +230,17 @@ export default function AdminAddPatient() {
             required
           />
 
-          <SelectField
-            name="ageRange"
-            label="Age Range"
-            options={AGE_RANGES.map(range => ({ value: range, label: range }))}
+          <InputField
+            name="contractNumber"
+            label="Contact Number"
+            placeholder="+91 9876543210"
+            required
+          />
+
+          <InputField
+            name="dateOfBirth"
+            label="Date of Birth"
+            type="date"
             required
           />
 
@@ -205,6 +257,17 @@ export default function AdminAddPatient() {
             placeholder="Phone number or email"
             required
           />
+
+          <div className="form-group form-full-width">
+            <label htmlFor="currentMedications">Current Medications (Optional)</label>
+            <textarea
+              name="currentMedications"
+              id="currentMedications"
+              placeholder="List any medications the patient is currently taking..."
+              rows="3"
+            />
+            <span className="form-helper">Optional. List any medications, supplements, or treatments the patient is currently using.</span>
+          </div>
 
           <div className="form-group">
             <label>Known Allergies</label>

@@ -14,24 +14,51 @@ const SPECIALTIES = [
   "Oncology", "Radiology", "Anesthesiology", "Emergency Medicine"
 ];
 
+const DEGREES = [
+  "MBBS", "MD", "MS", "DNB", "DM", "MCh", "BAMS", "BHMS", "BDS", "MDS", 
+  "BPT", "MPT", "B.Pharm", "M.Pharm", "PhD", "Fellowship"
+];
+
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia", "Austria", "Bangladesh", "Belgium", "Brazil", "Canada", "Chile", "China", "Colombia", "Denmark", "Egypt", "Finland", "France", "Germany", "India", "Indonesia", "Iran", "Iraq", "Italy", "Japan", "Jordan", "Kenya", "Malaysia", "Mexico", "Netherlands", "New Zealand", "Nigeria", "Norway", "Pakistan", "Philippines", "Poland", "Russia", "Saudi Arabia", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkey", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Vietnam"
+];
+
 const LANGUAGES = ["English", "Hindi", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati", "Kannada"];
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// Helper function to calculate age from date of birth
+const calculateAge = (dateOfBirth) => {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+};
 
 const createDoctorFormState = () => ({
   walletAddress: "",
   name: "",
   specialties: [],
-  country: "IN",
+  degrees: [],
+  country: "India",
   city: "",
+  address: "",
   timezone: "Asia/Kolkata",
+  dateOfBirth: "",
   experienceYears: "",
   languages: [],
   bio: "",
   email: "",
   licenseNumber: "",
   licenseIssuer: "",
-  website: "",
+  hospitalName: "",
+  affiliations: "",
   availability: []
 });
 
@@ -105,9 +132,13 @@ export default function AdminAddDoctor() {
       walletAddress,
       name: form.get("name"),
       specialties: formData.specialties,
+      degrees: formData.degrees,
+      dateOfBirth: form.get("dateOfBirth"),
+      age: calculateAge(form.get("dateOfBirth")),
       location: {
         country: form.get("country"),
         city: form.get("city"),
+        address: form.get("address"),
         timezone: form.get("timezone")
       },
       experienceYears: parseInt(form.get("experienceYears")),
@@ -121,8 +152,9 @@ export default function AdminAddDoctor() {
         number: form.get("licenseNumber"),
         issuer: form.get("licenseIssuer")
       },
-      links: {
-        website: form.get("website") || undefined
+      hospitalInfo: {
+        name: form.get("hospitalName"),
+        affiliations: form.get("affiliations")
       }
     };
 
@@ -132,7 +164,7 @@ export default function AdminAddDoctor() {
   const addAvailability = () => {
     setFormData(prev => ({
       ...prev,
-      availability: [...prev.availability, { day: "Mon", from: "09:00", to: "17:00" }]
+      availability: [...prev.availability, { days: ["Mon"], from: "09:00", to: "17:00" }]
     }));
   };
 
@@ -222,11 +254,74 @@ export default function AdminAddDoctor() {
             </div>
           </div>
 
+          <div className="form-group">
+            <label>Degrees</label>
+            <div className="checkbox-grid">
+              {DEGREES.map(degree => (
+                <label key={degree} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={formData.degrees.includes(degree)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData(prev => ({
+                          ...prev,
+                          degrees: [...prev.degrees, degree]
+                        }));
+                      } else {
+                        setFormData(prev => ({
+                          ...prev,
+                          degrees: prev.degrees.filter(d => d !== degree)
+                        }));
+                      }
+                    }}
+                  />
+                  {degree}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <InputField
+            name="dateOfBirth"
+            label="Date of Birth"
+            type="date"
+            required
+            max={new Date().toISOString().split('T')[0]}
+          />
+
+          <SelectField
+            name="country"
+            label="Country"
+            options={COUNTRIES}
+            required
+          />
+
           <InputField
             name="city"
             label="City"
             placeholder="Indore"
             required
+          />
+
+          <InputField
+            name="address"
+            label="Address"
+            placeholder="Complete address"
+            required
+          />
+
+          <InputField
+            name="hospitalName"
+            label="Hospital Name"
+            placeholder="City Hospital"
+            required
+          />
+
+          <InputField
+            name="affiliations"
+            label="Hospital Affiliations (Hospital ID)"
+            placeholder="Hospital registration ID or affiliation details"
           />
 
           <InputField
@@ -299,13 +394,6 @@ export default function AdminAddDoctor() {
             required
           />
 
-          <InputField
-            name="website"
-            label="Website (Optional)"
-            type="url"
-            placeholder="https://drsharma.example"
-          />
-
           <div className="form-group form-full-width">
             <div className="availability-header">
               <label>Availability</label>
@@ -315,25 +403,41 @@ export default function AdminAddDoctor() {
             </div>
             {formData.availability.map((slot, index) => (
               <div key={index} className="availability-row">
-                <select
-                  value={slot.day}
-                  onChange={(e) => updateAvailability(index, 'day', e.target.value)}
-                >
-                  {DAYS.map(day => (
-                    <option key={day} value={day}>{day}</option>
-                  ))}
-                </select>
-                <input
-                  type="time"
-                  value={slot.from}
-                  onChange={(e) => updateAvailability(index, 'from', e.target.value)}
-                />
-                <span>to</span>
-                <input
-                  type="time"
-                  value={slot.to}
-                  onChange={(e) => updateAvailability(index, 'to', e.target.value)}
-                />
+                <div className="availability-days">
+                  <label>Days:</label>
+                  <div className="checkbox-grid-inline">
+                    {DAYS.map(day => (
+                      <label key={day} className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={slot.days ? slot.days.includes(day) : false}
+                          onChange={(e) => {
+                            const currentDays = slot.days || [];
+                            if (e.target.checked) {
+                              updateAvailability(index, 'days', [...currentDays, day]);
+                            } else {
+                              updateAvailability(index, 'days', currentDays.filter(d => d !== day));
+                            }
+                          }}
+                        />
+                        {day}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="time-inputs">
+                  <input
+                    type="time"
+                    value={slot.from}
+                    onChange={(e) => updateAvailability(index, 'from', e.target.value)}
+                  />
+                  <span>to</span>
+                  <input
+                    type="time"
+                    value={slot.to}
+                    onChange={(e) => updateAvailability(index, 'to', e.target.value)}
+                  />
+                </div>
                 <button 
                   type="button" 
                   onClick={() => removeAvailability(index)}

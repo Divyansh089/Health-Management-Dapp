@@ -1,7 +1,9 @@
 import { ethers } from "ethers";
-import abi from "../abi/HealthcareLite.json";
+import healthcareLiteArtifact from "../abi/HealthcareLite.json";
 import addresses from "../abi/addresses.json";
 import { NETWORK } from "./constants.js";
+
+const abi = healthcareLiteArtifact.abi;
 
 let browserProvider = null;
 
