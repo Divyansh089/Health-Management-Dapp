@@ -20,6 +20,24 @@ export default function DoctorDashboard() {
     enabled: isDoctor && !!readonlyContract && !!doctorId,
     queryFn: async () => {
       const row = await readonlyContract.doctors(doctorId);
+      
+      // Fetch IPFS profile data to get the doctor's name
+      let displayName = null;
+      if (row.ipfs) {
+        try {
+          const ipfsUrl = row.ipfs.startsWith("http") 
+            ? row.ipfs 
+            : `https://ipfs.io/ipfs/${row.ipfs.replace("ipfs://", "")}`;
+          const response = await fetch(ipfsUrl);
+          if (response.ok) {
+            const profile = await response.json();
+            displayName = profile?.name || profile?.fullName || null;
+          }
+        } catch (error) {
+          console.error("Error fetching doctor profile:", error);
+        }
+      }
+      
       return {
         id: Number(row.id),
         humanId: formatEntityId("DOC", Number(row.id)),
@@ -27,7 +45,8 @@ export default function DoctorDashboard() {
         ipfs: row.ipfs,
         appointments: Number(row.appointments),
         successes: Number(row.successes),
-        approved: row.approved
+        approved: row.approved,
+        displayName: displayName
       };
     }
   });
@@ -74,7 +93,7 @@ export default function DoctorDashboard() {
     return (
       <section className="page">
         <div className="panel">
-          <h2>Doctor Dashboard</h2>
+          <h2>Access Restricted</h2>
           <p>You must connect with a registered doctor wallet.</p>
         </div>
       </section>
@@ -102,8 +121,15 @@ export default function DoctorDashboard() {
     <section className="page">
       <header className="page-header">
         <div>
-          <h2>Doctor Dashboard</h2>
-          <p>Welcome back. Manage your appointments and track your performance.</p>
+          <h2>
+            {doctorQuery.isLoading 
+              ? "Welcome, Doctor!" 
+              : doctor?.displayName 
+                ? `Welcome, Dr. ${doctor.displayName}!` 
+                : `Welcome, ${doctor?.humanId || 'Doctor'}!`
+            }
+          </h2>
+          <p>Manage your appointments and track your performance.</p>
         </div>
       </header>
 

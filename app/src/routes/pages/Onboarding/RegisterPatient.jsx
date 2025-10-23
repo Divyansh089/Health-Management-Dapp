@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
 import SelectField from "../../../components/Forms/SelectField.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
@@ -59,7 +59,8 @@ const createPatientFormState = () => ({
 
 export default function RegisterPatient() {
   const navigate = useNavigate();
-  const { signerContract, readonlyContract } = useWeb3();
+  const queryClient = useQueryClient();
+  const { signerContract, readonlyContract, account } = useWeb3();
   const [toast, setToast] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState(() => createPatientFormState());
@@ -110,15 +111,27 @@ export default function RegisterPatient() {
         setIsUploading(false);
       }
     },
-    onSuccess: () => {
-      setToast({ type: "success", message: "Welcome! Redirecting to patient dashboard..." });
+    onSuccess: async () => {
+      setToast({ type: "success", message: "Welcome! Updating role and redirecting..." });
       setFormData(createPatientFormState());
       formRef.current?.reset();
       
-      // Redirect to patient dashboard after a short delay
-      setTimeout(() => {
-        navigate("/patient");
-      }, 2000);
+      // Invalidate and refetch role data to ensure the contract recognizes the new patient
+      try {
+        await queryClient.invalidateQueries({ queryKey: ["web3-role", account] });
+        await queryClient.refetchQueries({ queryKey: ["web3-role", account] });
+        
+        // Redirect to patient dashboard after role is updated
+        setTimeout(() => {
+          navigate("/patient");
+        }, 1000);
+      } catch (error) {
+        console.error("Error updating role:", error);
+        // Still redirect after delay as fallback
+        setTimeout(() => {
+          navigate("/patient");
+        }, 2000);
+      }
     },
     onError: (error) => setToast({ type: "error", message: error.message || "Registration failed." })
   });

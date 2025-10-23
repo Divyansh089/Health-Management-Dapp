@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
 import SelectField from "../../../components/Forms/SelectField.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
@@ -64,7 +64,8 @@ const createDoctorFormState = () => ({
 
 export default function RegisterDoctor() {
   const navigate = useNavigate();
-  const { signerContract, readonlyContract } = useWeb3();
+  const queryClient = useQueryClient();
+  const { signerContract, readonlyContract, account } = useWeb3();
   const [toast, setToast] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const formRef = useRef(null);
@@ -115,15 +116,27 @@ export default function RegisterDoctor() {
         setIsUploading(false);
       }
     },
-    onSuccess: () => {
-      setToast({ type: "success", message: "Registration submitted. Redirecting to doctor dashboard..." });
+    onSuccess: async () => {
+      setToast({ type: "success", message: "Registration submitted. Updating role and redirecting..." });
       setFormData(createDoctorFormState());
       formRef.current?.reset();
       
-      // Redirect to doctor dashboard after a short delay
-      setTimeout(() => {
-        navigate("/doctor");
-      }, 2000);
+      // Invalidate and refetch role data to ensure the contract recognizes the new doctor
+      try {
+        await queryClient.invalidateQueries({ queryKey: ["web3-role", account] });
+        await queryClient.refetchQueries({ queryKey: ["web3-role", account] });
+        
+        // Redirect to doctor dashboard after role is updated
+        setTimeout(() => {
+          navigate("/doctor");
+        }, 1000);
+      } catch (error) {
+        console.error("Error updating role:", error);
+        // Still redirect after delay as fallback
+        setTimeout(() => {
+          navigate("/doctor");
+        }, 2000);
+      }
     },
     onError: (error) => setToast({ type: "error", message: error.message || "Registration failed." })
   });
