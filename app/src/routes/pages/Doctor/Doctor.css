@@ -17,6 +17,9 @@
 .prescription-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
 .prescription-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;padding:12px 0;border-bottom:1px solid rgba(15,23,42,.06)}
 .prescription-row:last-child{border-bottom:none}
+.prescription-row div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.prescription-row .table-sub{overflow-wrap:anywhere;word-break:break-word;white-space:normal;max-width:100%}
+.prescription-row .table-strong{overflow-wrap:anywhere;word-break:break-word;max-width:100%}
 .primary-btn{padding:10px 16px;border:none;border-radius:10px;background:#1e88e5;color:#fff;font-weight:600;cursor:pointer;align-self:flex-start}
 .primary-btn:disabled{opacity:.6;cursor:not-allowed}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
