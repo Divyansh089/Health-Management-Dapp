@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { fetchFromIPFS } from '../../lib/ipfs.js';
 import { formatEntityId } from '../../lib/format.js';
 import './Modal.css';
@@ -8,19 +8,51 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Robustly extract CID or HTTP gateway path
+  const extractCid = useCallback((uri) => {
+    if (!uri) return null;
+    const s = String(uri);
+    if (s.startsWith('ipfs://')) return s.slice(7);
+    if (s.includes('/ipfs/')) return s.split('/ipfs/')[1];
+    return s;
+  }, []);
+
   useEffect(() => {
-    if (isOpen && doctor?.ipfs) {
-      loadDoctorProfile();
+    let cancelled = false;
+    async function run() {
+      if (isOpen && doctor?.ipfs) {
+        await loadDoctorProfile(cancelled);
+      } else if (isOpen && !doctor?.ipfs) {
+        setProfileData(null);
+        setError('No IPFS profile set for this doctor');
+      }
     }
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, doctor]);
 
-  const loadDoctorProfile = async () => {
+  // Lock background scroll while modal open and enable Esc to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isOpen, onClose]);
+
+  const loadDoctorProfile = async (cancelledFlag = false) => {
     try {
       setLoading(true);
       setError(null);
       
       // Extract CID from IPFS URL
-      const cid = doctor.ipfs.replace('ipfs://', '').replace('https://ipfs.io/ipfs/', '');
+      const cid = extractCid(doctor.ipfs);
       
       try {
         // Try to fetch actual data from IPFS
@@ -53,7 +85,7 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
             photoUrl: actualData.photo?.gatewayUrl || actualData.photo?.ipfsUrl || null
           };
           
-          setProfileData(profileData);
+          if (!cancelledFlag) setProfileData(profileData);
           return;
         }
       } catch (ipfsError) {
@@ -70,11 +102,11 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
         phone: '+1 (555) 123-4567',
         email: 'doctor@hospital.com',
         availability: [
-          { day: 'Monday', time: '9:00 AM - 5:00 PM' },
-          { day: 'Tuesday', time: '9:00 AM - 5:00 PM' },
-          { day: 'Wednesday', time: '9:00 AM - 5:00 PM' },
-          { day: 'Thursday', time: '9:00 AM - 5:00 PM' },
-          { day: 'Friday', time: '9:00 AM - 5:00 PM' }
+          { day: 'Monday', from: '9:00 AM', to: '5:00 PM' },
+          { day: 'Tuesday', from: '9:00 AM', to: '5:00 PM' },
+          { day: 'Wednesday', from: '9:00 AM', to: '5:00 PM' },
+          { day: 'Thursday', from: '9:00 AM', to: '5:00 PM' },
+          { day: 'Friday', from: '9:00 AM', to: '5:00 PM' }
         ],
         languages: ['English', 'Spanish'],
         consultationFee: '$150',
@@ -84,7 +116,7 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
         photoUrl: null
       };
 
-      setProfileData(mockProfile);
+      if (!cancelledFlag) setProfileData(mockProfile);
     } catch (err) {
       setError('Failed to load doctor profile');
       console.error('Error loading doctor profile:', err);
@@ -210,12 +242,15 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
                   <h4>⏰ Availability</h4>
                   <div className="availability-grid">
                     {profileData.availability?.length > 0 ? (
-                      profileData.availability.map((slot, index) => (
-                        <div key={index} className="availability-item">
-                          <strong>{slot.day}:</strong>
-                          <span>{slot.from} - {slot.to}</span>
-                        </div>
-                      ))
+                      profileData.availability.map((slot, index) => {
+                        const timeText = slot.time || (slot.from && slot.to ? `${slot.from} - ${slot.to}` : null);
+                        return (
+                          <div key={index} className="availability-item">
+                            <strong>{slot.day}:</strong>
+                            <span>{timeText || 'Not specified'}</span>
+                          </div>
+                        );
+                      })
                     ) : (
                       <div className="availability-item">
                         <span>No availability schedule provided</span>

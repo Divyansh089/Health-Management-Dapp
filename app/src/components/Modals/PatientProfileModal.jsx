@@ -19,12 +19,11 @@ export default function PatientProfileModal({ patient, isOpen, onClose }) {
       setLoading(true);
       setError(null);
       
-      // Extract CID from IPFS URL
-      const cid = patient.ipfs.replace('ipfs://', '').replace('https://ipfs.io/ipfs/', '');
-      
+      // Try to fetch actual data from IPFS (accepts ipfs://, gateway URLs, or raw CID)
+      const cidOrUrl = patient.ipfs;
       try {
         // Try to fetch actual data from IPFS
-        const actualData = await fetchFromIPFS(cid);
+        const actualData = await fetchFromIPFS(cidOrUrl);
         
         if (actualData && actualData.type === 'patient') {
           // Transform the actual IPFS data to display format

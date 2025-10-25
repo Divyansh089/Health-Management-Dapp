@@ -137,37 +137,85 @@ async function mockUploadFile(file) {
   };
 }
 
-export function gatewayUrl(cid) {
-  const gw = import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/';
-  return gw + cid;
+export function gatewayUrl(cidOrPath) {
+  const base = (import.meta.env.VITE_IPFS_GATEWAY || 'https://ipfs.io/ipfs/').trim();
+  // Ensure trailing slash on base
+  const gw = base.endsWith('/') ? base : base + '/';
+  return gw + cidOrPath;
 }
 
-export async function fetchFromIPFS(cid) {
-  try {
-    // If using Pinata gateway and credentials are configured
-    if (PINATA_JWT && PINATA_JWT !== 'your_pinata_jwt_token_here') {
-      const response = await fetch(gatewayUrl(cid));
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      const data = await response.json();
-      console.log('Successfully fetched from IPFS:', data);
-      return data;
-    } else {
-      // If no real IPFS setup, simulate data structure based on CID pattern
-      console.log('Using mock IPFS data for CID:', cid);
-      
-      // Check if it's a mock CID from our upload
-      if (cid.startsWith('bafyrei')) {
-        // Return mock data with proper structure
-        throw new Error('Mock IPFS - data not actually stored');
-      }
-      
-      // For real CIDs, try standard IPFS gateway
-      const response = await fetch(`https://ipfs.io/ipfs/${cid}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      return await response.json();
-    }
-  } catch (error) {
-    console.error(`IPFS fetch failed for ${cid}:`, error.message);
-    throw new Error(`IPFS fetch failed: ${error.message}`);
+function normalizeIpfsInput(input) {
+  if (!input) return '';
+  const s = String(input).trim();
+  // If direct http(s) URL, return as-is
+  if (/^https?:\/\//i.test(s)) {
+    // Prefer extracting path after /ipfs/ when present (for consistent fallback URLs)
+    const idx = s.indexOf('/ipfs/');
+    return idx !== -1 ? s.slice(idx + 6) : s; // either ipfs path or full URL
   }
+  if (s.startsWith('ipfs://')) return s.slice(7);
+  const ipfsIdx = s.indexOf('/ipfs/');
+  if (ipfsIdx !== -1) return s.slice(ipfsIdx + 6);
+  return s; // assume it's CID or CID/path
+}
+
+async function fetchWithTimeout(url, ms = 8000, options = {}) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+export async function fetchFromIPFS(input) {
+  const norm = normalizeIpfsInput(input);
+  const isDirectHttp = /^https?:\/\//i.test(String(input));
+  const candidates = [];
+
+  // If a direct URL was provided (e.g., full gateway URL), try it first.
+  if (isDirectHttp && !norm.includes('://')) {
+    candidates.push(String(input));
+  }
+
+  // Always try configured gateway first (works even without PINATA_JWT)
+  candidates.push(gatewayUrl(norm));
+
+  // Add common public gateways as fallbacks
+  candidates.push(
+    `https://cloudflare-ipfs.com/ipfs/${norm}`,
+    `https://dweb.link/ipfs/${norm}`,
+    `https://gateway.pinata.cloud/ipfs/${norm}`
+  );
+
+  const errors = [];
+  for (const url of candidates) {
+    try {
+      const resp = await fetchWithTimeout(url, 8000, {
+        // Hint for JSON; many gateways still deliver correct CORS headers
+        headers: { Accept: 'application/json, text/plain;q=0.9, */*;q=0.8' },
+        mode: 'cors'
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      // Try JSON first; if it fails, bubble up so next gateway can be tried
+      const text = await resp.text();
+      try {
+        const json = JSON.parse(text);
+        return json;
+      } catch (e) {
+        throw new Error('Non-JSON content');
+      }
+    } catch (e) {
+      errors.push(`${url} -> ${e.message}`);
+      // continue to next gateway
+    }
+  }
+
+  // If we reach here, all gateways failed or content was not JSON
+  const msg = `all gateways failed for ${norm}: ${errors.join(' | ')}`;
+  console.error('IPFS fetch failed:', msg);
+  throw new Error(`IPFS fetch failed: ${msg}`);
 }

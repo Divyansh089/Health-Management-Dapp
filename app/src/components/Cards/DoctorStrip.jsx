@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { formatEntityId } from "../../lib/format.js";
 import DoctorProfileModal from "../Modals/DoctorProfileModal.jsx";
 
-export default function DoctorStrip({ doctor, onApprove, approving = false }) {
+export default function DoctorStrip({ doctor, onApprove, onView, approving = false }) {
   const [open, setOpen] = useState(false);
   if (!doctor) return null;
 
@@ -50,14 +50,18 @@ export default function DoctorStrip({ doctor, onApprove, approving = false }) {
 
       <div className="doctor-actions">
         {doctor.ipfs ? (
-          <button className="view-profile-btn" onClick={() => setOpen(true)} type="button">
+          <button
+            className="view-profile-btn"
+            onClick={() => (onView ? onView(doctor) : setOpen(true))}
+            type="button"
+          >
             View
           </button>
         ) : (
           <span className="muted">No profile</span>
         )}
 
-        {!doctor.approved && (
+        {!doctor.approved && onApprove && (
           <button
             className="approve-btn"
             disabled={approving}
@@ -69,7 +73,9 @@ export default function DoctorStrip({ doctor, onApprove, approving = false }) {
         )}
       </div>
 
-      <DoctorProfileModal doctor={doctor} isOpen={open} onClose={() => setOpen(false)} />
+      {!onView && (
+        <DoctorProfileModal doctor={doctor} isOpen={open} onClose={() => setOpen(false)} />
+      )}
     </div>
   );
 }

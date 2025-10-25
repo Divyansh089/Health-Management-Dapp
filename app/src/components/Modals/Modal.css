@@ -20,6 +20,7 @@
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  -webkit-overflow-scrolling: touch; /* smoother scroll on mobile */
 }
 
 .modal-content {
@@ -30,6 +31,7 @@
   width: 100%;
   max-width: 600px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  will-change: transform, opacity; /* hint for smoother transitions */
 }
 
 .large-modal {
@@ -68,6 +70,7 @@
   padding: 0 24px;
   max-height: 70vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-footer {

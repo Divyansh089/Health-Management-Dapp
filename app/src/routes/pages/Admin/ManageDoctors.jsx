@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import DoctorStrip from "../../../components/Cards/DoctorStrip.jsx";
 import ConfirmModal from "../../../components/Modals/ConfirmModal.jsx";
+import DoctorProfileModal from "../../../components/Modals/DoctorProfileModal.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
@@ -14,6 +15,7 @@ export default function ManageDoctors() {
   const queryClient = useQueryClient();
   const { role, signerContract, readonlyContract } = useWeb3();
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [profileDoctor, setProfileDoctor] = useState(null);
   const [toast, setToast] = useState(null);
   const { query, setPlaceholder, clearQuery } = useSearch();
 
@@ -111,6 +113,7 @@ export default function ManageDoctors() {
             doctor={doctor}
             approving={toggleApproval.isPending && selectedDoctor?.id === doctor.id}
             onApprove={() => setSelectedDoctor(doctor)}
+            onView={setProfileDoctor}
           />
         ))}
       </div>
@@ -137,6 +140,12 @@ export default function ManageDoctors() {
         }
         onCancel={() => setSelectedDoctor(null)}
         loading={toggleApproval.isPending}
+      />
+
+      <DoctorProfileModal
+        doctor={profileDoctor}
+        isOpen={Boolean(profileDoctor)}
+        onClose={() => setProfileDoctor(null)}
       />
 
       {toast && (
