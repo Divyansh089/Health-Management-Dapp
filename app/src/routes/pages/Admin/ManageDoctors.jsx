@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import DoctorCard from "../../../components/Cards/DoctorCard.jsx";
+import DoctorStrip from "../../../components/Cards/DoctorStrip.jsx";
 import ConfirmModal from "../../../components/Modals/ConfirmModal.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
@@ -95,7 +95,7 @@ export default function ManageDoctors() {
         </div>
       </header>
 
-      <div className="card-grid">
+      <div className="doctor-strip-list">
         {doctorsQuery.isLoading &&
           Array.from({ length: 3 }).map((_, idx) => (
             <div key={idx} className="panel skeleton-card" />
@@ -106,12 +106,11 @@ export default function ManageDoctors() {
           </div>
         )}
         {filteredDoctors.map((doctor) => (
-          <DoctorCard
+          <DoctorStrip
             key={doctor.id}
             doctor={doctor}
-            actionLabel={doctor.approved ? "Revoke Access" : "Approve Doctor"}
-            actionDisabled={toggleApproval.isPending && selectedDoctor?.id === doctor.id}
-            onAction={() => setSelectedDoctor(doctor)}
+            approving={toggleApproval.isPending && selectedDoctor?.id === doctor.id}
+            onApprove={() => setSelectedDoctor(doctor)}
           />
         ))}
       </div>

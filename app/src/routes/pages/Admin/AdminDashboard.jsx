@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { fetchAllAppointments, fetchAllPrescriptions, fetchDoctors, fetchMedicines } from "../../../lib/queries.js";
-import { generateMockActivityData, generateMockRevenueData, generateMockMedicineData, generateMockDoctorStats, generateMockMedicineStats } from "../../../lib/testData.js";
 import "./Admin.css";
 
 // Tiny inline sparkline renderer (no external libs)
@@ -133,6 +132,8 @@ function DonutChart({ data = [], colors = ["#3b82f6", "#22c55e", "#f59e0b", "#ef
     );
   }
 
+  // Handle single non-zero slice (SVG arcs cannot render a full 360° path)
+  const nonZero = data.filter((d) => d.value > 0);
   let cumulativeAngle = 0;
   const radius = 40;
   const centerX = 50;
@@ -141,7 +142,12 @@ function DonutChart({ data = [], colors = ["#3b82f6", "#22c55e", "#f59e0b", "#ef
   return (
     <div className="chart-container">
       <svg className="donut-chart" viewBox="0 0 100 100" style={{ width: "100%", height: "140px" }}>
-        {data.map((item, index) => {
+        {nonZero.length === 1 ? (
+          // Draw a full ring for the single non-zero category
+          <circle key="full" cx={centerX} cy={centerY} r={radius} fill={colors[ data.findIndex(d => d.value > 0) % colors.length ]} opacity={0.8} />
+        ) : (
+          data.map((item, index) => {
+            if (!item.value) return null; // skip zero slices
           const angle = (item.value / total) * 360;
           const startAngle = cumulativeAngle;
           const endAngle = cumulativeAngle + angle;
@@ -170,7 +176,8 @@ function DonutChart({ data = [], colors = ["#3b82f6", "#22c55e", "#f59e0b", "#ef
               opacity={0.8}
             />
           );
-        })}
+        })
+        )}
         <circle
           cx={centerX}
           cy={centerY}
@@ -299,24 +306,16 @@ export default function AdminDashboard() {
     [statsQuery.data]
   );
 
-  // Use real activity data instead of mock
+  // Use real activity data only (no demo fallbacks)
   const activityPoints = useMemo(() => {
-    if (activityQuery.data?.appointmentTrend?.length) {
-      return activityQuery.data.appointmentTrend;
-    }
-    // Fallback to demo data if no real data
-    const mockData = generateMockActivityData();
-    return mockData.appointments;
+    if (activityQuery.data?.appointmentTrend?.length) return activityQuery.data.appointmentTrend;
+    return [];
   }, [activityQuery.data]);
 
-  // Generate prescription activity points
+  // Prescription activity points (real-only)
   const prescriptionPoints = useMemo(() => {
-    if (activityQuery.data?.prescriptionTrend?.length) {
-      return activityQuery.data.prescriptionTrend;
-    }
-    // Fallback to demo data if no real data
-    const mockData = generateMockActivityData();
-    return mockData.prescriptions;
+    if (activityQuery.data?.prescriptionTrend?.length) return activityQuery.data.prescriptionTrend;
+    return [];
   }, [activityQuery.data]);
 
   // Analytics: revenue and medicine-added series from events
@@ -331,10 +330,16 @@ export default function AdminDashboard() {
         
         const boughtFilter = readonlyContract.filters.MedicineBought?.();
         const addedFilter = readonlyContract.filters.MedicineAdded?.();
+        const apptBookedFilter = readonlyContract.filters.AppointmentBooked?.();
+        const docRegFilter = readonlyContract.filters.DoctorRegistered?.();
+        const patRegFilter = readonlyContract.filters.PatientRegistered?.();
         
-        const [bought, added] = await Promise.all([
+        const [bought, added, apptBooked, docRegs, patRegs] = await Promise.all([
           readonlyContract.queryFilter(boughtFilter, fromBlock).catch(() => []),
           readonlyContract.queryFilter(addedFilter, fromBlock).catch(() => []),
+          readonlyContract.queryFilter(apptBookedFilter, fromBlock).catch(() => []),
+          readonlyContract.queryFilter(docRegFilter, fromBlock).catch(() => []),
+          readonlyContract.queryFilter(patRegFilter, fromBlock).catch(() => []),
         ]);
 
         let revenueWei = 0n;
@@ -351,6 +356,44 @@ export default function AdminDashboard() {
             byDay.set(day, (byDay.get(day) || 0n) + BigInt(paid));
           } catch (error) {
             console.warn("Error processing revenue event:", error);
+          }
+        }
+
+        // Include admin share of appointment fee: 10% of tx.value for AppointmentBooked
+        for (const log of apptBooked) {
+          try {
+            const block = await log.getBlock();
+            const txHash = log.transactionHash;
+            const tx = await readonlyContract.provider.getTransaction(txHash);
+            const value = tx?.value ?? 0n;
+            const adminShare = value / 10n; // 10% to admin
+            if (adminShare > 0n) {
+              const ts = block?.timestamp ?? Math.floor(Date.now() / 1000);
+              const day = new Date(ts * 1000).toISOString().slice(0, 10);
+              revenueWei += adminShare;
+              byDay.set(day, (byDay.get(day) || 0n) + adminShare);
+            }
+          } catch (error) {
+            console.warn("Error processing appointment revenue:", error);
+          }
+        }
+
+        // Include self-registration fees: DoctorRegistered and PatientRegistered where tx.value > 0
+        const regLogs = [...docRegs, ...patRegs];
+        for (const log of regLogs) {
+          try {
+            const block = await log.getBlock();
+            const txHash = log.transactionHash;
+            const tx = await readonlyContract.provider.getTransaction(txHash);
+            const value = tx?.value ?? 0n; // Admin-triggered registrations have 0 value
+            if (value > 0n) {
+              const ts = block?.timestamp ?? Math.floor(Date.now() / 1000);
+              const day = new Date(ts * 1000).toISOString().slice(0, 10);
+              revenueWei += value;
+              byDay.set(day, (byDay.get(day) || 0n) + value);
+            }
+          } catch (error) {
+            console.warn("Error processing registration revenue:", error);
           }
         }
 
@@ -386,36 +429,32 @@ export default function AdminDashboard() {
         };
       } catch (error) {
         console.error("Analytics query error:", error);
-        // Return mock data as fallback
-        return { 
-          totalRevenueEth: 2.45, 
-          revenueSeries: generateMockRevenueData(), 
-          addedSeries: generateMockMedicineData(), 
-          medicineAdded: 15, 
-          purchases: 28 
+        // No demo fallback: return empty/zeroed analytics
+        return {
+          totalRevenueEth: 0,
+          revenueSeries: [],
+          addedSeries: [],
+          medicineAdded: 0,
+          purchases: 0,
         };
       }
     },
   });
 
-  // Doctor performance data with fallback
+  // Doctor performance data (real-only)
   const doctorStatsQuery = useQuery({
     queryKey: ["admin", "doctor-stats"],
     enabled: !!readonlyContract,
     queryFn: async () => {
-      if (!readonlyContract) return generateMockDoctorStats();
-      
+      if (!readonlyContract) return { approvalStats: [], performanceData: [] };
       try {
         const doctors = await fetchDoctors(readonlyContract);
         const approved = doctors.filter(d => d.approved).length;
         const pending = doctors.filter(d => !d.approved).length;
-        
         const approvalStats = [
           { label: "Approved", value: approved },
           { label: "Pending", value: pending }
         ];
-
-        // Get top performing doctors
         const performanceData = doctors
           .filter(d => d.approved && d.appointments > 0)
           .sort((a, b) => (b.successes / b.appointments) - (a.successes / a.appointments))
@@ -424,37 +463,32 @@ export default function AdminDashboard() {
             t: d.displayName || `Dr. ${d.id}`,
             v: Math.round((d.successes / d.appointments) * 100)
           }));
-
         return { approvalStats, performanceData };
       } catch (error) {
         console.error("Error fetching doctor stats:", error);
-        return generateMockDoctorStats();
+        return { approvalStats: [], performanceData: [] };
       }
     }
   });
 
-  // Medicine inventory stats with fallback
+  // Medicine inventory stats (real-only)
   const medicineStatsQuery = useQuery({
     queryKey: ["admin", "medicine-stats"],
     enabled: !!readonlyContract,
     queryFn: async () => {
-      if (!readonlyContract) return generateMockMedicineStats();
-      
+      if (!readonlyContract) return { inventoryStats: [], stockLevels: [] };
       try {
         const medicines = await fetchMedicines(readonlyContract);
         const active = medicines.filter(m => m.active).length;
         const inactive = medicines.filter(m => !m.active).length;
         const outOfStock = medicines.filter(m => m.active && m.stock === 0).length;
         const lowStock = medicines.filter(m => m.active && m.stock > 0 && m.stock < 10).length;
-        
         const inventoryStats = [
           { label: "Active", value: active },
           { label: "Inactive", value: inactive },
           { label: "Out of Stock", value: outOfStock },
           { label: "Low Stock", value: lowStock }
         ];
-
-        // Stock levels for top medicines
         const stockLevels = medicines
           .filter(m => m.active)
           .sort((a, b) => b.stock - a.stock)
@@ -463,11 +497,10 @@ export default function AdminDashboard() {
             t: (m.displayName || `Med ${m.id}`).slice(0, 8),
             v: m.stock
           }));
-
         return { inventoryStats, stockLevels };
       } catch (error) {
         console.error("Error fetching medicine stats:", error);
-        return generateMockMedicineStats();
+        return { inventoryStats: [], stockLevels: [] };
       }
     }
   });
@@ -483,12 +516,6 @@ export default function AdminDashboard() {
               <span className="status-indicator live">
                 <span className="status-dot"></span>
                 Live
-              </span>
-            )}
-            {!readonlyContract && (
-              <span className="status-indicator demo">
-                <span className="status-dot"></span>
-                Demo
               </span>
             )}
           </h2>
@@ -516,7 +543,32 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* Total Revenue summary styled like KPI card, with a full-width chart below */}
+      <div className="revenue-block">
+        <div className="kpi-card revenue-summary">
+          <div className="kpi-icon" aria-hidden>💰</div>
+          <div className="kpi-meta center">
+            <span className="stat-label">Total Revenue (ETH)</span>
+            <strong className="stat-value revenue-amount">
+              {analyticsQuery.isLoading
+                ? "…"
+                : (analyticsQuery.data?.totalRevenueEth?.toFixed?.(4) ?? "0.0000")}
+            </strong>
+          </div>
+        </div>
+        <div className="panel fancy-panel revenue-chart-panel">
+          {analyticsQuery.isLoading ? (
+            <div className="skeleton-card" />
+          ) : (
+            <AreaChart series={analyticsQuery.data?.revenueSeries || []} color="#1e88e5" />
+          )}
+        </div>
+      </div>
+
+      
+
       <div className="card-grid">
+        {/* System Activity moved here to align in one row with the other two panels */}
         <div className="panel fancy-panel">
           <h3>System Activity</h3>
           <div className="activity-metrics">
@@ -546,93 +598,8 @@ export default function AdminDashboard() {
           <div className="panel-footer-text">
             {activityQuery.data?.appointmentTrend?.length 
               ? "Real-time system activity over last 12 days"
-              : "Live on‑chain activity trend (demo)"}
+              : "No on‑chain activity data available"}
           </div>
-        </div>
-
-        <div className="panel fancy-panel">
-          <h3>Shortcuts</h3>
-          <div className="shortcuts-grid">
-            <a className="shortcut-tile" href="/admin/doctors">🩺 Manage Doctors</a>
-            <a className="shortcut-tile" href="/admin/patients">👥 Manage Patients</a>
-            <a className="shortcut-tile" href="/admin/medicines">💊 Manage Medicines</a>
-            <a className="shortcut-tile" href="/admin/activity">🧭 System Activity</a>
-          </div>
-        </div>
-      </div>
-
-      <header className="page-header">
-        <div>
-          <h2>Analytics & Performance</h2>
-          <p>Revenue, activity, and catalog growth at a glance.</p>
-        </div>
-        <div className="system-health">
-          <div className="health-indicator">
-            <span className="health-label">System Health</span>
-            <div className="health-status good">
-              <span className="health-dot"></span>
-              Excellent
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="stats-grid kpi-grid">
-        {[{
-          label: "Total Revenue (ETH)",
-          value: analyticsQuery.data?.totalRevenueEth?.toFixed?.(4) ?? "0.0000",
-          icon: "💰"
-        }, {
-          label: "Purchases",
-          value: analyticsQuery.data?.purchases ?? 0,
-          icon: "🛒"
-        }, {
-          label: "Medicines Added",
-          value: analyticsQuery.data?.medicineAdded ?? 0,
-          icon: "💊"
-        }].map((k) => (
-          <div className="kpi-card" key={k.label}>
-            <div className="kpi-icon" aria-hidden>{k.icon}</div>
-            <div className="kpi-meta">
-              <span className="stat-label">{k.label}</span>
-              <strong className="stat-value">{analyticsQuery.isLoading ? "…" : k.value}</strong>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="card-grid">
-        <div className="panel fancy-panel">
-          <h3>Revenue Over Time</h3>
-          {analyticsQuery.isLoading ? (
-            <div className="skeleton-card" />
-          ) : (
-            <AreaChart series={analyticsQuery.data?.revenueSeries || []} color="#1e88e5" />
-          )}
-          <div className="panel-footer-text">Sum of MedicineBought(paidWei), grouped by day</div>
-        </div>
-
-        <div className="panel fancy-panel">
-          <h3>Medicines Added</h3>
-          {analyticsQuery.isLoading ? (
-            <div className="skeleton-card" />
-          ) : (
-            <BarChart series={analyticsQuery.data?.addedSeries || []} color="#22c55e" />
-          )}
-          <div className="panel-footer-text">Count of MedicineAdded events per day</div>
-        </div>
-
-        <div className="panel fancy-panel">
-          <h3>Doctor Approvals</h3>
-          {doctorStatsQuery.isLoading ? (
-            <div className="skeleton-card" />
-          ) : (
-            <DonutChart 
-              data={doctorStatsQuery.data?.approvalStats || []} 
-              colors={["#22c55e", "#f59e0b"]}
-            />
-          )}
-          <div className="panel-footer-text">Approved vs pending doctor registrations</div>
         </div>
 
         <div className="panel fancy-panel">
@@ -645,7 +612,7 @@ export default function AdminDashboard() {
               colors={["#22c55e", "#6b7280", "#ef4444", "#f59e0b"]}
             />
           )}
-          <div className="panel-footer-text">Active, inactive, and stock status distribution</div>
+          
         </div>
 
         <div className="panel fancy-panel">
@@ -659,19 +626,6 @@ export default function AdminDashboard() {
             />
           )}
           <div className="panel-footer-text">Success rate (%) for top performing doctors</div>
-        </div>
-
-        <div className="panel fancy-panel">
-          <h3>Stock Levels</h3>
-          {medicineStatsQuery.isLoading ? (
-            <div className="skeleton-card" />
-          ) : (
-            <BarChart 
-              series={medicineStatsQuery.data?.stockLevels || []} 
-              color="#06b6d4" 
-            />
-          )}
-          <div className="panel-footer-text">Current stock levels for active medicines</div>
         </div>
       </div>
     </section>

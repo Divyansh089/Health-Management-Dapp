@@ -37,10 +37,11 @@ export async function fetchDoctors(contract, { onlyApproved = false } = {}) {
       ipfs: row.ipfs,
       approved: row.approved,
       appointments: toNumber(row.appointments),
-      successes: toNumber(row.successes)
+      successes: toNumber(row.successes),
+      displayName: null,
+      photoUrl: null
     };
     entry.humanId = formatEntityId("DOC", entry.id);
-    entry.displayName = null;
     if (entry.ipfs) {
       try {
         const url = resolveIpfsUri(entry.ipfs);
@@ -48,7 +49,21 @@ export async function fetchDoctors(contract, { onlyApproved = false } = {}) {
           const response = await fetch(url);
           if (response.ok) {
             const profile = await response.json();
-            entry.displayName = profile?.name || profile?.fullName || null;
+            entry.displayName = profile?.name || profile?.fullName || profile?.displayName || null;
+            const rawImage = profile?.image || profile?.avatar || profile?.photo || profile?.thumbnail || profile?.cover;
+            if (rawImage && typeof rawImage === "object") {
+              const nestedPointer =
+                rawImage.gatewayUrl ||
+                rawImage.url ||
+                rawImage.ipfsUrl ||
+                rawImage.src ||
+                rawImage.href ||
+                rawImage.cid ||
+                rawImage.hash;
+              entry.photoUrl = nestedPointer ? resolveIpfsUri(nestedPointer) : null;
+            } else {
+              entry.photoUrl = rawImage ? resolveIpfsUri(rawImage) : null;
+            }
           }
         }
       } catch {
