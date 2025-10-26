@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
@@ -7,12 +7,14 @@ import { ROLES } from "../../../lib/constants.js";
 import { fetchAllPrescriptions, fetchMedicines } from "../../../lib/queries.js";
 import { formatDate } from "../../../lib/format.js";
 import "./Patient.css";
+import MedicineDetailModal from "../../../components/Modals/MedicineDetailModal.jsx";
 
 export default function MyPrescriptions() {
   const queryClient = useQueryClient();
   const { role, patientId, signerContract, readonlyContract } = useWeb3();
   const [toast, setToast] = useState(null);
   const [pendingBuy, setPendingBuy] = useState(null);
+  const [viewMedicine, setViewMedicine] = useState(null);
 
   const isPatient = role === ROLES.PATIENT;
 
@@ -65,6 +67,44 @@ export default function MyPrescriptions() {
   }
 
   const prescriptions = prescriptionsQuery.data || [];
+  
+  function resolveLink(uri) {
+    if (!uri) return null;
+    if (typeof uri === "object") {
+      const nested =
+        uri.gatewayUrl ||
+        uri.url ||
+        uri.ipfsUrl ||
+        uri.src ||
+        uri.href ||
+        uri.cid ||
+        uri.hash ||
+        null;
+      return resolveLink(nested);
+    }
+    if (typeof uri === "string" && uri.startsWith("ipfs://")) {
+      return `https://ipfs.io/ipfs/${uri.slice(7)}`;
+    }
+    if (typeof uri === "string" && !uri.startsWith("http")) {
+      return `https://ipfs.io/ipfs/${uri}`;
+    }
+    return uri;
+  }
+
+  const getMedicineDisplay = (medicine) => {
+    if (!medicine) return { name: `#${"?"}`, expiry: null, status: "unknown" };
+    const md = medicine.metadata || {};
+    const name = (medicine.displayName || md.name || md.title || medicine.humanId || `#${medicine.id}`);
+    const image = medicine.imageUrl || resolveLink(md.image) || resolveLink(md.imageUrl) || null;
+    const expiryRaw = md.expiry || md.expiryDate || md.expiration || md.expirationDate || md.expiresAt || md.validUntil || null;
+    let expiry = null;
+    if (expiryRaw) {
+      const d = new Date(expiryRaw);
+      if (!isNaN(d.getTime())) expiry = d;
+    }
+    const status = expiry ? (expiry.getTime() < Date.now() ? "expired" : "valid") : "unknown";
+    return { name, image, expiry, status };
+  };
 
   return (
     <section className="page">
@@ -91,10 +131,50 @@ export default function MyPrescriptions() {
                     <span>{formatDate(item.date)}</span>
                   </header>
                   <div className="prescription-body">
+                    {(() => {
+                      const { name, image, expiry, status } = getMedicineDisplay(medicine);
+                      const fallback = (name || "M").charAt(0).toUpperCase();
+                      return (
+                        <div className="prescription-hero">
+                          <div className={`prescription-thumb ${image ? "" : "empty"}`} aria-hidden>
+                            {!image && <div className="prescription-thumb-fallback">{fallback}</div>}
+                            {image && (
+                              <img
+                                src={image}
+                                alt=""
+                                onError={(e) => {
+                                  e.currentTarget.closest('.prescription-thumb')?.classList.add('empty');
+                                  e.currentTarget.remove();
+                                }}
+                              />
+                            )}
+                          </div>
+                          <div className="prescription-meta">
+                            <div className="prescription-title">
+                              <span className="tile-label">Medicine</span>
+                              <strong className="tile-value">{name}</strong>
+                            </div>
+                            <div className="prescription-chips">
+                              <span className={`chip ${status === "expired" ? "chip-danger" : ""}`}>
+                                {expiry ? `Expiry ${expiry.toLocaleDateString()}` : "Expiry N/A"}
+                              </span>
+                              <span className="chip">
+                                {medicine ? `${medicine.priceEth?.toFixed?.(4) ?? medicine.priceEth} ETH` : "Price N/A"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div>
                       <span className="tile-label">Medicine</span>
-                      <strong className="tile-value">#{item.medicineId}</strong>
-                      <span className="tile-sub">{medicine?.ipfs || "Metadata unavailable"}</span>
+                      <strong className="tile-value">{getMedicineDisplay(medicine).name}</strong>
+                      {(() => {
+                        const info = getMedicineDisplay(medicine);
+                        return (
+                          <span className="tile-sub"></span>
+                        );
+                      })()}
                     </div>
                     <div>
                       <span className="tile-label">Price</span>
@@ -102,7 +182,22 @@ export default function MyPrescriptions() {
                         {medicine ? `${medicine.priceEth.toFixed(4)} ETH` : "Unknown"}
                       </strong>
                     </div>
+                    <div>
+                      <span className="tile-label">Expiry</span>
+                      {(() => {
+                        const { expiry, status } = getMedicineDisplay(medicine);
+                        return (
+                          <strong className={`tile-value ${status === "expired" ? "danger" : ""}`}>
+                            {expiry ? expiry.toLocaleDateString() : "—"}
+                          </strong>
+                        );
+                      })()}
+                    </div>
                   </div>
+                  <div className="prescription-actions">
+                    <button type="button" className="view-profile-btn" onClick={() => setViewMedicine(medicine)}>
+                      View
+                    </button>
                   {medicine && medicine.active ? (
                     <form
                       className="inline-form"
@@ -140,12 +235,19 @@ export default function MyPrescriptions() {
                       {medicine ? "Currently unavailable." : "Medicine details missing."}
                     </div>
                   )}
+                  </div>
                 </article>
               );
             })}
           </div>
         )}
       </section>
+
+      <MedicineDetailModal
+        medicine={viewMedicine}
+        readOnly
+        onClose={() => setViewMedicine(null)}
+      />
 
       {toast && (
         <Toast

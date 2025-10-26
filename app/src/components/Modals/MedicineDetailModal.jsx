@@ -43,7 +43,8 @@ export default function MedicineDetailModal({
   onToggleActive,
   pricePending = false,
   stockPending = false,
-  togglePending = false
+  togglePending = false,
+  readOnly = false
 }) {
   if (!medicine) return null;
 
@@ -173,6 +174,7 @@ export default function MedicineDetailModal({
             </div>
           </section>
 
+          {!readOnly && (
           <section className="medicine-modal-actions">
             <form className="medicine-action-form" onSubmit={handlePriceSubmit}>
               <InputField
@@ -211,6 +213,7 @@ export default function MedicineDetailModal({
               {togglePending ? "Updating…" : medicine.active ? "Deactivate" : "Activate"}
             </button>
           </section>
+          )}
 
           <section className="medicine-modal-grid">
             <div className="medicine-modal-card">
