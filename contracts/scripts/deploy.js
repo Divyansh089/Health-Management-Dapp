@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 async function main() {
-  const Factory = await hre.ethers.getContractFactory("HealthcareLite");
+  const Factory = await hre.ethers.getContractFactory("Healthcare");
   const c = await Factory.deploy();
   await c.waitForDeployment();
   const address = await c.getAddress();

@@ -9,6 +9,7 @@ import AdminDashboard from "./pages/Admin/AdminDashboard.jsx";
 import ManageDoctors from "./pages/Admin/ManageDoctors.jsx";
 import ManageMedicines from "./pages/Admin/ManageMedicines.jsx";
 import AddMedicine from "./pages/Admin/AddMedicine.jsx";
+import MedicineRequests from "./pages/Admin/MedicineRequests.jsx";
 import AdminAddDoctor from "./pages/Admin/AdminAddDoctor.jsx";
 import AdminAddPatient from "./pages/Admin/AdminAddPatient.jsx";
 import AdminActivity from "./pages/Admin/AdminActivity.jsx";
@@ -18,11 +19,13 @@ import DoctorLayout from "./pages/Doctor/DoctorLayout.jsx";
 import DoctorDashboard from "./pages/Doctor/DoctorDashboard.jsx";
 import DoctorAppointments from "./pages/Doctor/Appointments.jsx";
 import DoctorPrescriptions from "./pages/Doctor/Prescriptions.jsx";
+import DoctorChats from "./pages/Doctor/Chats.jsx";
 import RequestMedicine from "./pages/Doctor/RequestMedicine.jsx";
 import PatientLayout from "./pages/Patient/PatientLayout.jsx";
 import PatientDashboard from "./pages/Patient/PatientDashboard.jsx";
 import BookAppointment from "./pages/Patient/BookAppointment.jsx";
 import MyPrescriptions from "./pages/Patient/MyPrescriptions.jsx";
+import PatientChats from "./pages/Patient/Chats.jsx";
 import RoleGuard from "../components/Guards/RoleGuard.jsx";
 
 export default function Router() {
@@ -42,8 +45,9 @@ export default function Router() {
         <Route path="add-doctor" element={<AdminAddDoctor />} />
         <Route path="patients" element={<AdminPatients />} />
         <Route path="add-patient" element={<AdminAddPatient />} />
-        <Route path="medicines" element={<ManageMedicines />} />
+                <Route path="medicines" element={<ManageMedicines />} />
         <Route path="add-medicine" element={<AddMedicine />} />
+        <Route path="medicine-requests" element={<MedicineRequests />} />
         <Route path="fees" element={<AdminFees />} />
         <Route path="activity" element={<AdminActivity />} />
       </Route>
@@ -52,6 +56,7 @@ export default function Router() {
         <Route index element={<DoctorDashboard />} />
         <Route path="patients" element={<DoctorAppointments />} />
         <Route path="prescriptions" element={<DoctorPrescriptions />} />
+        <Route path="chats" element={<DoctorChats />} />
         <Route path="request-medicine" element={<RequestMedicine />} />
       </Route>
 
@@ -59,9 +64,11 @@ export default function Router() {
         <Route index element={<PatientDashboard />} />
         <Route path="book" element={<BookAppointment />} />
         <Route path="prescriptions" element={<MyPrescriptions />} />
+        <Route path="chats" element={<PatientChats />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
+

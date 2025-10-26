@@ -38,3 +38,11 @@
 .view-profile-btn:hover {
   background: rgba(30, 136, 229, 0.1);
 }
+
+.view-profile-btn.secondary {
+  color: #64748b;
+}
+
+.view-profile-btn.secondary:hover {
+  background: rgba(148, 163, 184, 0.15);
+}

@@ -1,13 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDate, formatEntityId } from "../../../lib/format.js";
-import {
-  MEDICINE_REQUESTS_EVENT,
-  addMedicineRequest,
-  getMedicineRequests
-} from "../../../lib/medicineRequests.js";
-import { uploadJSONToIPFS, uploadFileToIPFS } from "../../../lib/ipfs.js";
 import { DOSAGE_FORMS, STORAGE_CONDITIONS } from "../../../lib/medicineConstants.js";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../../../lib/ipfs.js";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
+import { ROLES } from "../../../lib/constants.js";
+import { fetchMedicineRequests } from "../../../lib/queries.js";
 import Toast from "../../../components/Toast/Toast.jsx";
 import "../../../components/Forms/Form.css";
 import "../../../components/Tables/Table.css";
@@ -15,13 +13,151 @@ import "../../../components/Toast/Toast.css";
 import "./RequestMedicine.css";
 
 export default function RequestMedicine() {
-  const { account, doctorId } = useWeb3();
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const { role, doctorId, signerContract, readonlyContract } = useWeb3();
   const [toast, setToast] = useState(null);
-  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(false);
 
+  const isDoctor = role === ROLES.DOCTOR;
+
+  const requestsQuery = useQuery({
+    queryKey: ["doctor", "medicine-requests"],
+    enabled: isDoctor && !!readonlyContract,
+    queryFn: () => fetchMedicineRequests(readonlyContract)
+  });
+
+  const requests = useMemo(() => {
+    const list = requestsQuery.data || [];
+    if (!doctorId) return list;
+    return list.filter((item) => Number(item.doctorId) === Number(doctorId));
+  }, [requestsQuery.data, doctorId]);
+
+  const submitMutation = useMutation({
+    mutationFn: async ({ metadataCid }) => {
+      if (!signerContract) throw new Error("Connect your wallet as an approved doctor.");
+      const tx = await signerContract.submitMedicineRequest(metadataCid);
+      await tx.wait();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["doctor", "medicine-requests"] });
+      setToast({ type: "success", message: "Request submitted to admin." });
+    },
+    onError: (error) => setToast({ type: "error", message: error.message || "Failed to submit request." })
+  });
+
+  if (!isDoctor) {
+    return (
+      <section className="page">
+        <div className="panel">
+          <h2>Request Medicine</h2>
+          <p>You must connect with a registered doctor wallet.</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="page">
+      <header className="page-header">
+        <div>
+          <h2>Request New Medicine</h2>
+          <p>Submit inventory suggestions to the admin with detailed metadata pinned to IPFS.</p>
+        </div>
+      </header>
+
+      <section className="panel">
+        <h3>Create Request</h3>
+        <MedicineRequestForm
+          loading={loading || submitMutation.isPending}
+          onSubmit={async (payload) => {
+            try {
+              setLoading(true);
+              const { imageFile, ...rest } = payload;
+              let imageUpload = null;
+              if (imageFile) {
+                imageUpload = await uploadFileToIPFS(imageFile);
+              }
+
+              const metadata = {
+                ...rest,
+                doctorId,
+                createdAt: new Date().toISOString(),
+                image: imageUpload?.ipfsUrl || imageUpload?.cid || null
+              };
+              const metadataUpload = await uploadJSONToIPFS(metadata);
+              const metadataCid = metadataUpload.ipfsUrl || metadataUpload.cid;
+              if (!metadataCid) {
+                throw new Error("Unable to pin metadata to IPFS.");
+              }
+              await submitMutation.mutateAsync({ metadataCid });
+            } catch (error) {
+              console.error("Request submission failed", error);
+              setToast({ type: "error", message: error.message || "Failed to prepare request." });
+            } finally {
+              setLoading(false);
+            }
+          }}
+        />
+      </section>
+
+      <section className="panel">
+        <h3>Submitted Requests</h3>
+        {requestsQuery.isLoading ? (
+          <p>Loading�</p>
+        ) : requests.length === 0 ? (
+          <p>No requests submitted yet.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Medicine</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Submitted</th>
+                <th>Metadata</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((request) => (
+                <tr key={request.id || request.metadataCid}>
+                  <td>{formatEntityId("REQ", request.id || 0)}</td>
+                  <td>{request.metadata?.medicineName || request.metadata?.name || "Unnamed"}</td>
+                  <td>{request.metadata?.requestReason || "�"}</td>
+                  <td>{request.processed ? "Processed" : "Pending"}</td>
+                  <td>{formatDate(request.createdAt)}</td>
+                  <td>
+                    <a
+                      href={request.metadataCid ? `https://ipfs.io/ipfs/${request.metadataCid.replace(/^ipfs:\/\//, "")}` : "#"}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="view-profile-btn"
+                    >
+                      View IPFS
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => setToast(null)}
+          duration={4000}
+        />
+      )}
+    </section>
+  );
+}
+
+function MedicineRequestForm({ loading, onSubmit }) {
   const [formData, setFormData] = useState({
-    name: "",
+    medicineName: "",
     genericName: "",
     manufacturer: "",
     description: "",
@@ -30,531 +166,235 @@ export default function RequestMedicine() {
     batch: "",
     expiry: "",
     regulatoryId: "",
-    storage: [],
     price: "",
     stock: "",
+    storage: [],
     requestReason: "",
-    urgencyLevel: "normal"
+    urgencyLevel: "normal",
+    imageFile: null
   });
 
-  const doctorLabel = useMemo(() => {
-    if (!doctorId) return null;
-    return formatEntityId('DOC', doctorId);
-  }, [doctorId]);
-
-  const canSubmit = Boolean(doctorId);
-
-  const refreshRequests = useCallback(() => {
-    const all = getMedicineRequests();
-    if (doctorId) {
-      setRequests(all.filter((item) => Number(item?.doctorId) === Number(doctorId)));
-      return;
-    }
-    if (account) {
-      setRequests(all.filter((item) => item?.doctorAddress?.toLowerCase?.() === account.toLowerCase()));
-      return;
-    }
-    setRequests(all);
-  }, [doctorId, account]);
-
-  useEffect(() => {
-    refreshRequests();
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-    const handler = () => refreshRequests();
-    window.addEventListener(MEDICINE_REQUESTS_EVENT, handler);
-    return () => {
-      window.removeEventListener(MEDICINE_REQUESTS_EVENT, handler);
-    };
-  }, [doctorId, account, refreshRequests]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const toggleStorageCondition = (condition) => {
+  const toggleStorage = (condition) => {
     setFormData((prev) => {
-      const hasCondition = prev.storage.includes(condition);
-      const nextStorage = hasCondition
+      const exists = prev.storage.includes(condition);
+      const nextStorage = exists
         ? prev.storage.filter((item) => item !== condition)
         : [...prev.storage, condition];
       return { ...prev, storage: nextStorage };
     });
   };
 
-  const generateClientRequestId = () => {
-    try {
-      if (typeof crypto !== "undefined" && crypto.randomUUID) {
-        return crypto.randomUUID();
-      }
-    } catch {
-      // ignore
-    }
-    return `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  };
-
-  const showToastMessage = (message, type = 'success') => {
-    setToast({ message, type });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!doctorId) {
-      showToastMessage('Please connect your wallet and ensure you are registered as a doctor', 'error');
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // Get form data including file
-      const form = new FormData(e.currentTarget);
-      const imageFile = form.get("image");
-      
-      // Validate required fields
-      const requiredFields = [
-        "name",
-        "genericName",
-        "manufacturer",
-        "dosageForm",
-        "strength",
-        "batch",
-        "expiry",
-        "regulatoryId",
-        "price",
-        "stock",
-        "description",
-        "requestReason"
-      ];
-      const missingFields = requiredFields.filter(field => !formData[field].trim());
-      
-      if (missingFields.length > 0) {
-        showToastMessage(`Please fill in required fields: ${missingFields.join(', ')}`, 'error');
-        return;
-      }
-
-      const priceValue = Number(formData.price);
-      if (!Number.isFinite(priceValue) || priceValue <= 0) {
-        showToastMessage('Please enter a valid price in ETH greater than zero', 'error');
-        return;
-      }
-
-      const stockValue = Number(formData.stock);
-      if (!Number.isFinite(stockValue) || stockValue < 0) {
-        showToastMessage('Please enter a valid stock quantity (0 or greater)', 'error');
-        return;
-      }
-
-      const storageNotes = formData.storage;
-      if (storageNotes.length === 0) {
-        showToastMessage('Select at least one storage condition', 'error');
-        return;
-      }
-
-      // Upload image to IPFS if provided
-      let imageUrl = null;
-      if (imageFile && imageFile.size > 0) {
-        const imageResult = await uploadFileToIPFS(imageFile);
-        imageUrl = imageResult.gatewayUrl || imageResult.ipfsUrl;
-      }
-
-      const clientRequestId = generateClientRequestId();
-
-      // Prepare medicine request data
-      const requestData = {
-        ...formData,
-        storage: storageNotes,
-        batch: formData.batch,
-        expiry: formData.expiry,
-        regulatoryId: formData.regulatoryId,
-        requestedBy: doctorId,
-        doctorWallet: account || null,
-        doctorLabel: doctorLabel || null,
-        requestDate: new Date().toISOString(),
-        status: 'pending',
-        type: 'medicine_request',
-        price: priceValue,
-        stock: stockValue,
-        currency: 'ETH',
-        clientRequestId,
-        imageUrl: imageUrl || null,
-        image: imageUrl || null
-      };
-
-      // Upload to IPFS
-      const ipfsResult = await uploadJSONToIPFS({
-        ...requestData,
-        type: 'medicine_request',
-        timestamp: new Date().toISOString()
-      });
-      
-      addMedicineRequest({
-        ...requestData,
-        doctorId,
-        doctorAddress: account || null,
-        doctorName: doctorLabel || `Doctor ${doctorId}`,
-        medicineName: formData.name,
-        genericName: formData.genericName,
-        manufacturer: formData.manufacturer,
-        description: formData.description,
-        ipfsCid: ipfsResult.cid,
-        ipfsUrl: ipfsResult.ipfsUrl,
-        metadata: requestData,
-        status: 'pending'
-      });
-      refreshRequests();
-      showToastMessage('Medicine request submitted successfully! Waiting for admin approval.');
-      
-      // Reset form
-      setFormData({
-        name: '',
-        genericName: '',
-        manufacturer: '',
-        description: '',
-        dosageForm: '',
-        strength: '',
-        batch: '',
-        expiry: '',
-        regulatoryId: '',
-        storage: [],
-        price: '',
-        stock: '',
-        requestReason: '',
-        urgencyLevel: 'normal'
-      });
-
-    } catch (error) {
-      console.error('Medicine request error:', error);
-      const message = error?.message ? String(error.message) : 'Unknown error';
-      showToastMessage('Failed to submit medicine request: ' + message, 'error');
-    } finally {
-      setLoading(false);
-    }
+  const handleFile = (event) => {
+    const file = event.target.files?.[0] || null;
+    setFormData((prev) => ({ ...prev, imageFile: file }));
   };
 
   return (
-    <div className="request-medicine-page">
-      <div className="page-header">
-        <h1>🏥 Request New Medicine</h1>
-        <p>Submit a request to add a new medicine to the system (requires admin approval)</p>
-      </div>
-
-      {doctorLabel ? (
-        <div className="info-banner">
-          You are submitting as <strong>{doctorLabel}</strong>. Provide detailed information to help
-          the admin verify this medicine quickly.
-        </div>
-      ) : (
-        <div className="info-banner warning">
-          Connect your wallet and ensure your doctor profile is approved before submitting a
-          request.
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="form-container">
-        <div className="form-section">
-          <h3>📋 Basic Information</h3>
-          <div className="form-grid">
-            <div className="input-group">
-              <label>Medicine Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                placeholder="e.g., Paracetamol"
-              />
-            </div>
-
-            <div className="input-group">
-              <label>Generic Name *</label>
-              <input
-                type="text"
-                name="genericName"
-                value={formData.genericName}
-                onChange={handleChange}
-                required
-                placeholder="e.g., Acetaminophen"
-              />
-            </div>
-
-            <div className="input-group">
-              <label>Manufacturer *</label>
-              <input
-                type="text"
-                name="manufacturer"
-                value={formData.manufacturer}
-                onChange={handleChange}
-                required
-                placeholder="e.g., Johnson & Johnson"
-              />
-            </div>
-
-            <div className="input-group">
-              <label>Medicine Image</label>
-              <input
-                type="file"
-                name="image"
-                accept="image/*"
-                placeholder="Upload medicine image..."
-              />
-              <small style={{color: '#666', fontSize: '0.9em'}}>Optional. Upload a product image (JPG, PNG, GIF)</small>
-            </div>
-
-            <div className="input-group">
-              <label>Dosage Form *</label>
-              <select
-                name="dosageForm"
-                value={formData.dosageForm}
-                onChange={handleChange}
-                required
-              >
-                <option value="" disabled>Select dosage form</option>
-                {DOSAGE_FORMS.map((form) => (
-                  <option key={form} value={form}>
-                    {form.charAt(0).toUpperCase() + form.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="input-group">
-              <label>Strength *</label>
-              <input
-                type="text"
-                name="strength"
-                value={formData.strength}
-                onChange={handleChange}
-                required
-                placeholder="e.g., 500 mg"
-              />
-            </div>
-
-            <div className="input-group full-width">
-              <label>Description *</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Brief description of the medicine..."
-                rows={3}
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <h3>📜 Regulatory & Handling</h3>
-          <div className="form-grid">
-            <div className="input-group">
-              <label>Regulatory ID *</label>
-              <input
-                type="text"
-                name="regulatoryId"
-                value={formData.regulatoryId}
-                onChange={handleChange}
-                required
-                placeholder="Regulatory approval number"
-              />
-            </div>
-
-            <div className="input-group">
-              <label>Expiry Date *</label>
-              <input
-                type="date"
-                name="expiry"
-                value={formData.expiry}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="input-group">
-              <label>Batch Number *</label>
-              <input
-                type="text"
-                name="batch"
-                value={formData.batch}
-                onChange={handleChange}
-                required
-                placeholder="Manufacturing batch number"
-              />
-            </div>
-          </div>
-          <div className="storage-grid">
-            <label>Storage Conditions *</label>
-            <div className="checkbox-grid">
-              {STORAGE_CONDITIONS.map((condition) => (
-                <label key={condition} className="checkbox-item">
-                  <input
-                    type="checkbox"
-                    checked={formData.storage.includes(condition)}
-                    onChange={() => toggleStorageCondition(condition)}
-                  />
-                  {condition}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <h3>💰 Pricing & Inventory</h3>
-          <div className="form-grid">
-            <div className="input-group">
-              <label>Price (ETH) *</label>
-              <input
-                type="number"
-                step="0.0001"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                required
-                placeholder="0.0000"
-              />
-            </div>
-
-            <div className="input-group">
-              <label>Initial Stock *</label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                name="stock"
-                value={formData.stock}
-                onChange={handleChange}
-                required
-                placeholder="e.g., 100"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <h3>📋 Request Details</h3>
-          <div className="form-grid">
-            <div className="input-group full-width">
-              <label>Reason for Request *</label>
-              <textarea
-                name="requestReason"
-                value={formData.requestReason}
-                onChange={handleChange}
-                required
-                placeholder="Explain why this medicine should be added to the system..."
-                rows={4}
-              />
-            </div>
-
-            <div className="input-group">
-              <label>Urgency Level</label>
-              <select
-                name="urgencyLevel"
-                value={formData.urgencyLevel}
-                onChange={handleChange}
-              >
-                <option value="low">Low Priority</option>
-                <option value="normal">Normal Priority</option>
-                <option value="high">High Priority</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="form-actions">
-          <button 
-            type="submit" 
-            disabled={loading || !canSubmit}
-            className="btn-primary"
-            title={canSubmit ? undefined : 'Connect with an approved doctor wallet to submit'}
-          >
-            {loading ? '⏳ Submitting Request...' : '🚀 Submit Medicine Request'}
-          </button>
-        </div>
-      </form>
-
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          duration={5000}
-          onDismiss={() => setToast(null)}
+    <form
+      className="form-grid"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!formData.medicineName.trim()) {
+          onSubmit?.(null);
+          return;
+        }
+        onSubmit?.({
+          ...formData,
+          price: Number(formData.price) || 0,
+          stock: Number(formData.stock) || 0
+        });
+        setFormData({
+          medicineName: "",
+          genericName: "",
+          manufacturer: "",
+          description: "",
+          dosageForm: "",
+          strength: "",
+          batch: "",
+          expiry: "",
+          regulatoryId: "",
+          price: "",
+          stock: "",
+          storage: [],
+          requestReason: "",
+          urgencyLevel: "normal",
+          imageFile: null
+        });
+        event.currentTarget.reset();
+      }}
+    >
+      <div className="form-field">
+        <span className="form-label">Medicine Name</span>
+        <input
+          className="form-input"
+          name="medicineName"
+          required
+          value={formData.medicineName}
+          onChange={handleChange}
+          placeholder="e.g. Amoxicillin"
         />
-      )}
-
-      <div className="form-section recent-requests">
-        <h3>📦 Recent Requests</h3>
-        {requests.length === 0 ? (
-          <p className="empty-table">You have not submitted any medicine requests yet.</p>
-        ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Submitted</th>
-                  <th>Image</th>
-                  <th>Medicine</th>
-                  <th>Price</th>
-                  <th>Stock</th>
-                  <th>Urgency</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((item) => (
-                  <tr key={item.id ?? item.ipfsCid ?? item.requestDate}>
-                    <td>{formatDate(item.requestDate) || '—'}</td>
-                    <td>
-                      {(item.imageUrl || item.image) ? (
-                        <img
-                          src={item.imageUrl || item.image}
-                          alt={item.medicineName || 'Medicine image'}
-                          className="request-image-thumb"
-                          onError={(event) => {
-                            event.currentTarget.classList.add('hidden');
-                          }}
-                        />
-                      ) : (
-                        <span className="request-image-placeholder">No image</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="doctor-info">
-                        <strong>{item.medicineName}</strong>
-                        <small>{item.genericName || 'Generic name pending'}</small>
-                      </div>
-                    </td>
-                    <td>
-                      {item.price !== null && item.price !== '' && Number.isFinite(Number(item.price))
-                        ? `${Number(item.price).toFixed(4)} ETH`
-                        : '—'}
-                    </td>
-                    <td>{Number.isFinite(Number(item.stock)) ? Number(item.stock) : '—'}</td>
-                    <td>
-                      <span className={`urgency-pill ${(item.urgencyLevel || 'normal').toLowerCase()}`}>
-                        {item.urgencyLevel?.toUpperCase?.() || 'NORMAL'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`status-badge ${(item.status || 'pending').toLowerCase()}`}>
-                        {item.status?.toUpperCase?.() || 'PENDING'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
-    </div>
+      <div className="form-field">
+        <span className="form-label">Generic Name</span>
+        <input
+          className="form-input"
+          name="genericName"
+          value={formData.genericName}
+          onChange={handleChange}
+        />
+      </div>
+      <div className="form-field">
+        <span className="form-label">Manufacturer</span>
+        <input
+          className="form-input"
+          name="manufacturer"
+          value={formData.manufacturer}
+          onChange={handleChange}
+        />
+      </div>
+      <div className="form-field">
+        <span className="form-label">Dosage Form</span>
+        <select
+          className="form-input"
+          name="dosageForm"
+          value={formData.dosageForm}
+          onChange={handleChange}
+        >
+          <option value="">Select</option>
+          {DOSAGE_FORMS.map((form) => (
+            <option key={form} value={form}>
+              {form}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="form-field">
+        <span className="form-label">Strength</span>
+        <input
+          className="form-input"
+          name="strength"
+          value={formData.strength}
+          onChange={handleChange}
+          placeholder="e.g. 500mg"
+        />
+      </div>
+      <div className="form-field">
+        <span className="form-label">Batch</span>
+        <input
+          className="form-input"
+          name="batch"
+          value={formData.batch}
+          onChange={handleChange}
+        />
+      </div>
+      <div className="form-field">
+        <span className="form-label">Expiry Date</span>
+        <input
+          className="form-input"
+          type="date"
+          name="expiry"
+          value={formData.expiry}
+          onChange={handleChange}
+        />
+      </div>
+      <div className="form-field">
+        <span className="form-label">Regulatory ID</span>
+        <input
+          className="form-input"
+          name="regulatoryId"
+          value={formData.regulatoryId}
+          onChange={handleChange}
+        />
+      </div>
+      <div className="form-field">
+        <span className="form-label">Price (ETH)</span>
+        <input
+          className="form-input"
+          name="price"
+          type="number"
+          min="0"
+          step="0.0001"
+          value={formData.price}
+          onChange={handleChange}
+        />
+      </div>
+      <div className="form-field">
+        <span className="form-label">Desired Stock</span>
+        <input
+          className="form-input"
+          name="stock"
+          type="number"
+          min="0"
+          step="1"
+          value={formData.stock}
+          onChange={handleChange}
+        />
+      </div>
+      <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+        <span className="form-label">Description</span>
+        <textarea
+          className="form-input"
+          name="description"
+          rows={3}
+          value={formData.description}
+          onChange={handleChange}
+          placeholder="Clinical notes, indications, etc."
+        />
+      </div>
+      <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+        <span className="form-label">Storage Conditions</span>
+        <div className="storage-grid">
+          {STORAGE_CONDITIONS.map((condition) => (
+            <label key={condition} className="storage-chip">
+              <input
+                type="checkbox"
+                checked={formData.storage.includes(condition)}
+                onChange={() => toggleStorage(condition)}
+              />
+              <span>{condition}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+      <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+        <span className="form-label">Request Reason</span>
+        <textarea
+          className="form-input"
+          name="requestReason"
+          rows={3}
+          value={formData.requestReason}
+          onChange={handleChange}
+          placeholder="Explain why this medicine is needed"
+        />
+      </div>
+      <div className="form-field">
+        <span className="form-label">Urgency</span>
+        <select
+          className="form-input"
+          name="urgencyLevel"
+          value={formData.urgencyLevel}
+          onChange={handleChange}
+        >
+          <option value="normal">Normal</option>
+          <option value="priority">Priority</option>
+          <option value="critical">Critical</option>
+        </select>
+      </div>
+      <div className="form-field">
+        <span className="form-label">Image (optional)</span>
+        <input className="form-input" type="file" accept="image/*" onChange={handleFile} />
+      </div>
+      <button type="submit" className="primary-btn" disabled={loading}>
+        {loading ? "Submitting�" : "Submit Request"}
+      </button>
+    </form>
   );
 }
+
+
+

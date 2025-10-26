@@ -1,470 +1,181 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ethers } from "ethers";
 import Toast from "../../../components/Toast/Toast.jsx";
 import "../../../components/Tables/Table.css";
 import "../../../components/Toast/Toast.css";
-import { MEDICINE_REQUESTS_EVENT, getMedicineRequests, updateMedicineRequest } from "../../../lib/medicineRequests.js";
+import { fetchMedicineRequests } from "../../../lib/queries.js";
 import { fetchFromIPFS } from "../../../lib/ipfs.js";
 import { formatDate, formatEntityId } from "../../../lib/format.js";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
-import { useSearch } from "../../../state/SearchContext.jsx";
 import "./Admin.css";
 
 export default function MedicineRequests() {
-  const { signerContract } = useWeb3();
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(null);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState('success');
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const { query, setPlaceholder, clearQuery } = useSearch();
+  const queryClient = useQueryClient();
+  const { signerContract, readonlyContract, role } = useWeb3();
+  const [toast, setToast] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
 
-  const showToastMessage = (message, type = 'success') => {
-    setToastMessage(message);
-    setToastType(type);
-    setShowToast(true);
-  };
+  const requestsQuery = useQuery({
+    queryKey: ["admin", "medicine-requests"],
+    enabled: !!readonlyContract,
+    queryFn: () => fetchMedicineRequests(readonlyContract)
+  });
 
-  const loadMedicineRequests = () => {
-    try {
-      setLoading(true);
-      const existing = getMedicineRequests();
-      setRequests(existing);
-      if (existing.length) {
-        setSelectedRequest((prev) => prev && existing.some((item) => item.id === prev.id)
-          ? existing.find((item) => item.id === prev.id) || existing[0]
-          : existing[0]);
-      } else {
-        setSelectedRequest(null);
-      }
-    } catch (error) {
-      console.error("Error loading medicine requests:", error);
-      showToastMessage("Failed to load medicine requests", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const requests = useMemo(() => requestsQuery.data || [], [requestsQuery.data]);
+  const selectedRequest = useMemo(() => requests.find((item) => item.id === selectedId) || requests[0] || null, [requests, selectedId]);
 
-  const handleApprove = async (requestId, medicineName, ipfsCid) => {
-    if (!signerContract) {
-      showToastMessage('Connect the admin wallet to approve medicine requests.', 'error');
-      return;
-    }
-    try {
-      setProcessing(requestId);
-      
-      // Fetch full medicine data from IPFS
-      const medicineData = await fetchFromIPFS(ipfsCid);
-      
-      const priceValue = Number(medicineData.price);
-      if (!Number.isFinite(priceValue) || priceValue < 0) {
-        throw new Error('Invalid price in submitted metadata.');
-      }
-
-      const stockValue = Number(medicineData.stock ?? medicineData.quantity ?? 0);
-      if (!Number.isFinite(stockValue) || stockValue < 0) {
-        throw new Error('Invalid stock in submitted metadata.');
-      }
-
-      const metadataPointer = ipfsCid.startsWith('ipfs://') ? ipfsCid : `ipfs://${ipfsCid}`;
-
-      // Add medicine to contract
-      const tx = await signerContract.addMedicine(
-        metadataPointer,
-        ethers.parseEther(priceValue.toString()),
-        Math.trunc(stockValue)
-      );
-      
+  const approveMutation = useMutation({
+    mutationFn: async (request) => {
+      if (!signerContract) throw new Error("Connect the admin wallet to approve requests.");
+      const metadataCid = request.metadataCid;
+      if (!metadataCid) throw new Error("Missing metadata pointer.");
+      const metadata = request.metadata || (await fetchFromIPFS(metadataCid));
+      const price = Number(metadata.price || metadata.priceEth || 0);
+      const stock = Number(metadata.stock || metadata.quantity || 0);
+      if (!Number.isFinite(price) || price <= 0) throw new Error("Invalid price in metadata.");
+      if (!Number.isFinite(stock) || stock < 0) throw new Error("Invalid stock in metadata.");
+      const ipfsPointer = metadataCid.startsWith("ipfs://") ? metadataCid : `ipfs://${metadataCid}`;
+      const tx = await signerContract.addMedicine(ipfsPointer, ethers.parseEther(price.toString()), Math.trunc(stock));
       await tx.wait();
-
-      const updated = updateMedicineRequest(requestId, {
-        status: "approved",
-        processedAt: new Date().toISOString()
-      });
-
-      if (updated) {
-        setRequests((prev) => prev.map((req) => (req.id === requestId ? updated : req)));
-        setSelectedRequest((prev) => (prev && prev.id === requestId ? updated : prev));
+      if (request.id) {
+        const statusTx = await signerContract.setMedicineRequestStatus(request.id, true);
+        await statusTx.wait();
       }
-      showToastMessage(`Medicine "${medicineName}" approved and added to catalog!`);
-    } catch (error) {
-      console.error("Error approving medicine:", error);
-      showToastMessage("Failed to approve medicine request: " + error.message, "error");
-    } finally {
-      setProcessing(null);
-    }
-  };
-
-  const handleReject = async (requestId, medicineName) => {
-    try {
-      setProcessing(requestId);
-      
-      const updated = updateMedicineRequest(requestId, {
-        status: "rejected",
-        processedAt: new Date().toISOString()
-      });
-      if (updated) {
-        setRequests((prev) => prev.map((req) => (req.id === requestId ? updated : req)));
-        setSelectedRequest((prev) => (prev && prev.id === requestId ? updated : prev));
-      }
-      showToastMessage(`Medicine request for "${medicineName}" rejected`);
-    } catch (error) {
-      console.error("Error rejecting medicine:", error);
-      showToastMessage("Failed to reject medicine request", "error");
-    } finally {
-      setProcessing(null);
-    }
-  };
-
-  const getUrgencyColor = (level) => {
-    switch (level) {
-      case 'urgent': return '#ff4757';
-      case 'high': return '#ff6b4a';
-      case 'normal': return '#54a0ff';
-      case 'low': return '#5f27cd';
-      default: return '#54a0ff';
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'approved': return '#2ed573';
-      case 'rejected': return '#ff4757';
-      case 'pending': return '#ffa502';
-      default: return '#747d8c';
-    }
-  };
-
-  useEffect(() => {
-    loadMedicineRequests();
-    if (typeof window !== "undefined") {
-      const handler = (event) => {
-        const nextRequests = event?.detail?.requests || getMedicineRequests();
-        setRequests(nextRequests);
-        if (nextRequests.length) {
-          setSelectedRequest((prev) => prev && nextRequests.some((item) => item.id === prev.id)
-            ? nextRequests.find((item) => item.id === prev.id) || nextRequests[0]
-            : nextRequests[0]);
-        } else {
-          setSelectedRequest(null);
-        }
-      };
-      window.addEventListener(MEDICINE_REQUESTS_EVENT, handler);
-      return () => {
-        window.removeEventListener(MEDICINE_REQUESTS_EVENT, handler);
-      };
-    }
-  }, []);
-
-  useEffect(() => {
-    setPlaceholder('Search medicine requests');
-    return () => {
-      setPlaceholder();
-      clearQuery();
-    };
-  }, [setPlaceholder, clearQuery]);
-
-  const filteredRequests = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return requests;
-    return requests.filter((req) => {
-      const fields = [
-        req.doctorName,
-        req.doctorAddress,
-        req.medicineName,
-        req.genericName,
-        req.manufacturer,
-        String(req.doctorId),
-        formatEntityId('DOC', req.doctorId),
-        req.status,
-        req.urgencyLevel,
-        req.ipfsCid
-      ]
-        .filter(Boolean)
-        .map((value) => value.toLowerCase());
-      return fields.some((value) => value.includes(term));
-    });
-  }, [requests, query]);
-
-  if (loading) {
-    return (
-      <div className="page-container">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading medicine requests...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const pendingRequests = filteredRequests.filter(req => req.status === 'pending');
-  const processedRequests = filteredRequests.filter(req => req.status !== 'pending');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "medicine-requests"] });
+      setToast({ type: "success", message: "Request approved and medicine added." });
+    },
+    onError: (error) => setToast({ type: "error", message: error.message || "Approval failed." })
+  });
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1>💊 Medicine Requests</h1>
-        <p>Review and approve medicine requests from doctors</p>
-      </div>
+    <section className="page">
+      <header className="page-header">
+        <div>
+          <h2>Medicine Requests</h2>
+          <p>Review submissions from doctors and add vetted medicines to the catalog.</p>
+        </div>
+      </header>
 
-      {pendingRequests.length > 0 && (
-        <div className="card">
-          <h3>🔄 Pending Requests ({pendingRequests.length})</h3>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Doctor</th>
-                  <th>Medicine Name</th>
-                  <th>Request Date</th>
-                  <th>Urgency</th>
-                  <th>Actions</th>
+      <section className="panel">
+        <h3>Pending Requests</h3>
+        {requestsQuery.isLoading ? (
+          <p>Loading�</p>
+        ) : requests.length === 0 ? (
+          <p>No requests submitted.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Doctor</th>
+                <th>Medicine</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((request) => (
+                <tr key={request.id || request.metadataCid} className={selectedRequest?.id === request.id ? "active" : ""}>
+                  <td>{formatEntityId("REQ", request.id || 0)}</td>
+                  <td>{formatEntityId("DOC", request.doctorId || 0)}</td>
+                  <td>{request.metadata?.medicineName || request.metadata?.name || "Unnamed"}</td>
+                  <td>{formatDate(request.createdAt)}</td>
+                  <td>{request.processed ? "Processed" : "Pending"}</td>
+                  <td>
+                    <button type="button" className="link-button" onClick={() => setSelectedId(request.id)}>
+                      View
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {pendingRequests.map((request) => (
-                  <tr key={request.id}>
-                    <td>
-                      <div className="doctor-info">
-                        <strong>{request.doctorName}</strong>
-                        <small>ID: {request.doctorId}</small>
-                      </div>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="link-button"
-                        onClick={() => setSelectedRequest(request)}
-                      >
-                        {request.medicineName}
-                      </button>
-                    </td>
-                    <td>
-                      {formatDate(request.requestDate) || '—'}
-                    </td>
-                    <td>
-                      <span 
-                        className="status-badge"
-                        style={{ backgroundColor: getUrgencyColor(request.urgencyLevel) }}
-                      >
-                        {request.urgencyLevel.toUpperCase()}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          onClick={() => handleApprove(request.id, request.medicineName, request.ipfsCid)}
-                          disabled={processing === request.id}
-                          className="btn-approve"
-                        >
-                          {processing === request.id ? '⏳' : '✅'} Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject(request.id, request.medicineName)}
-                          disabled={processing === request.id}
-                          className="btn-reject"
-                        >
-                          {processing === request.id ? '⏳' : '❌'} Reject
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {processedRequests.length > 0 && (
-        <div className="card">
-          <h3>📋 Processed Requests ({processedRequests.length})</h3>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Doctor</th>
-                  <th>Medicine Name</th>
-                  <th>Request Date</th>
-                  <th>Status</th>
-                  <th>Urgency</th>
-                </tr>
-              </thead>
-              <tbody>
-                {processedRequests.map((request) => (
-                  <tr key={request.id}>
-                    <td>
-                      <div className="doctor-info">
-                        <strong>{request.doctorName}</strong>
-                        <small>ID: {request.doctorId}</small>
-                      </div>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="link-button"
-                        onClick={() => setSelectedRequest(request)}
-                      >
-                        {request.medicineName}
-                      </button>
-                    </td>
-                    <td>
-                      {formatDate(request.requestDate) || '—'}
-                    </td>
-                    <td>
-                      <span 
-                        className="status-badge"
-                        style={{ backgroundColor: getStatusColor(request.status) }}
-                      >
-                        {request.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td>
-                      <span 
-                        className="status-badge"
-                        style={{ backgroundColor: getUrgencyColor(request.urgencyLevel) }}
-                      >
-                        {request.urgencyLevel.toUpperCase()}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {requests.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-icon">💊</div>
-          <h3>No Medicine Requests</h3>
-          <p>No medicine requests have been submitted yet.</p>
-        </div>
-      )}
-
-      {requests.length > 0 && filteredRequests.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-icon">🔍</div>
-          <h3>No Matching Requests</h3>
-          <p>No medicine requests match your search.</p>
-        </div>
-      )}
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
 
       {selectedRequest && (
-        <div className="card">
-          <h3>📝 Request Details</h3>
+        <section className="panel">
+          <header className="panel-header">
+            <div>
+              <h3>{selectedRequest.metadata?.medicineName || selectedRequest.metadata?.name || "Request"}</h3>
+              <p>Submitted {formatDate(selectedRequest.createdAt)} by {formatEntityId("DOC", selectedRequest.doctorId || 0)}</p>
+            </div>
+            <div className="panel-actions">
+              <button
+                type="button"
+                className="primary-btn"
+                disabled={approveMutation.isPending || selectedRequest.processed}
+                onClick={() => approveMutation.mutate(selectedRequest)}
+              >
+                {approveMutation.isPending ? "Approving�" : selectedRequest.processed ? "Processed" : "Approve"}
+              </button>
+            </div>
+          </header>
           <div className="details-grid">
-            <div>
-              <strong>Medicine Name</strong>
-              <p>{selectedRequest.medicineName}</p>
-            </div>
-            <div>
-              <strong>Generic Name</strong>
-              <p>{selectedRequest.genericName || '—'}</p>
-            </div>
-            <div>
-              <strong>Manufacturer</strong>
-              <p>{selectedRequest.manufacturer || '—'}</p>
-            </div>
-            <div>
-              <strong>Urgency</strong>
-              <p>{selectedRequest.urgencyLevel?.toUpperCase?.() || 'NORMAL'}</p>
-            </div>
-            <div>
-              <strong>Price</strong>
-              <p>
-                {selectedRequest.price !== null && selectedRequest.price !== '' && Number.isFinite(Number(selectedRequest.price))
-                  ? `${Number(selectedRequest.price).toFixed(2)} ${selectedRequest.currency}`
-                  : '—'}
-              </p>
-            </div>
-            <div>
-              <strong>Status</strong>
-              <p>{selectedRequest.status?.toUpperCase?.() || 'PENDING'}</p>
-            </div>
-            <div>
-              <strong>Doctor ID</strong>
-              <p>{selectedRequest.doctorId ? formatEntityId('DOC', selectedRequest.doctorId) : '—'}</p>
-            </div>
-            <div>
-              <strong>Doctor Wallet</strong>
-              <p className="truncate">{selectedRequest.doctorAddress || '—'}</p>
-            </div>
-            <div>
-              <strong>Strength</strong>
-              <p>{selectedRequest.strength || '—'}</p>
-            </div>
-            <div>
-              <strong>Dosage Form</strong>
-              <p>{selectedRequest.dosageForm || '—'}</p>
-            </div>
-            <div>
-              <strong>Therapeutic Class</strong>
-              <p>{selectedRequest.therapeuticClass || '—'}</p>
-            </div>
-            <div>
-              <strong>Approval Number</strong>
-              <p>{selectedRequest.approvalNumber || '—'}</p>
-            </div>
-            <div>
-              <strong>Expiry Date</strong>
-              <p>{selectedRequest.expiryDate ? formatDate(selectedRequest.expiryDate) : '—'}</p>
-            </div>
-            <div>
-              <strong>Batch Number</strong>
-              <p>{selectedRequest.batchNumber || '—'}</p>
+            <DetailItem label="Generic Name" value={selectedRequest.metadata?.genericName} />
+            <DetailItem label="Manufacturer" value={selectedRequest.metadata?.manufacturer} />
+            <DetailItem label="Dosage Form" value={selectedRequest.metadata?.dosageForm} />
+            <DetailItem label="Strength" value={selectedRequest.metadata?.strength} />
+            <DetailItem label="Price" value={`${selectedRequest.metadata?.price || "0"} ETH`} />
+            <DetailItem label="Desired Stock" value={selectedRequest.metadata?.stock} />
+            <DetailItem label="Urgency" value={selectedRequest.metadata?.urgencyLevel} />
+            <DetailItem label="Expiry" value={selectedRequest.metadata?.expiry} />
+            <DetailItem label="Regulatory ID" value={selectedRequest.metadata?.regulatoryId} />
+            <div className="full-width">
+              <strong>Request Reason</strong>
+              <p>{selectedRequest.metadata?.requestReason || "No reason provided."}</p>
             </div>
             <div className="full-width">
-              <strong>Reason</strong>
-              <p>{selectedRequest.requestReason || 'No justification provided.'}</p>
+              <strong>Description</strong>
+              <p>{selectedRequest.metadata?.description || "No description provided."}</p>
             </div>
-            {selectedRequest.activeIngredients?.length ? (
+            {selectedRequest.metadata?.storage?.length ? (
               <div className="full-width">
-                <strong>Active Ingredients</strong>
+                <strong>Storage</strong>
                 <ul className="pill-list">
-                  {selectedRequest.activeIngredients.map((item, idx) => (
-                    <li key={idx}>{item}</li>
+                  {selectedRequest.metadata.storage.map((item) => (
+                    <li key={item}>{item}</li>
                   ))}
                 </ul>
               </div>
             ) : null}
-            {selectedRequest.description ? (
-              <div className="full-width">
-                <strong>Description</strong>
-                <p>{selectedRequest.description}</p>
-              </div>
-            ) : null}
           </div>
-
-          <footer className="details-footer">
-            <div>
-              <small>Submitted: {formatDate(selectedRequest.requestDate) || '—'}</small>
-            </div>
-            {selectedRequest.ipfsCid && (
+          {selectedRequest.metadataCid && (
+            <footer className="panel-footer">
               <a
                 className="link-button"
-                href={`https://ipfs.io/ipfs/${selectedRequest.ipfsCid}`}
+                href={`https://ipfs.io/ipfs/${selectedRequest.metadataCid.replace(/^ipfs:\/\//, "")}`}
                 target="_blank"
                 rel="noreferrer"
               >
-                View Metadata →
+                View Metadata on IPFS
               </a>
-            )}
-          </footer>
-        </div>
+            </footer>
+          )}
+        </section>
       )}
 
-      {showToast && (
+      {toast && (
         <Toast
-          message={toastMessage}
-          type={toastType}
-          duration={5000}
-          onDismiss={() => setShowToast(false)}
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => setToast(null)}
+          duration={4000}
         />
       )}
+    </section>
+  );
+}
+
+function DetailItem({ label, value }) {
+  return (
+    <div>
+      <strong>{label}</strong>
+      <p>{value ? String(value) : "None"}</p>
     </div>
   );
 }

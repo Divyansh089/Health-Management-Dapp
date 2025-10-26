@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import { formatEntityId } from "./format.js";
+import { fetchFromIPFS } from "./ipfs.js";
 function resolveIpfsUri(uri) {
   if (!uri) return null;
   if (uri.startsWith("http://") || uri.startsWith("https://")) return uri;
@@ -248,4 +249,111 @@ export async function fetchAllPrescriptions(contract) {
     });
   }
   return result;
+}
+export async function fetchMedicineRequests(contract) {
+  if (!contract) return [];
+  const rows = await contract.getMedicineRequestsAll();
+  return Promise.all(
+    rows.map(async (row) => {
+      const entry = {
+        id: toNumber(row.id),
+        doctorId: toNumber(row.doctorId),
+        metadataCid: row.metadataCid || "",
+        createdAt: toNumber(row.createdAt) * 1000,
+        processed: Boolean(row.processed),
+        metadata: null
+      };
+      if (entry.metadataCid) {
+        try {
+          entry.metadata = await fetchFromIPFS(entry.metadataCid);
+        } catch (error) {
+          console.warn("Failed to fetch medicine request metadata:", error);
+        }
+      }
+      return entry;
+    })
+  );
+}
+function normalizeChatRow(row) {
+  return {
+    id: toNumber(row.id),
+    appointmentId: toNumber(row.appointmentId),
+    patientId: toNumber(row.patientId),
+    doctorId: toNumber(row.doctorId),
+    createdAt: toNumber(row.createdAt) * 1000,
+    lastMessageAt: toNumber(row.lastMessageAt) * 1000,
+    closed: Boolean(row.closed),
+    metadataCid: row.metadataCid || row.metadata || ""
+  };
+}
+
+export async function fetchChatsByDoctor(contract, doctorId) {
+  if (!contract || !doctorId) return [];
+  const rows = await contract.getChatsByDoctor(doctorId);
+  return Promise.all(
+    rows.map(async (row) => {
+      const chat = normalizeChatRow(row);
+      if (chat.metadataCid) {
+        try {
+          chat.metadata = await fetchFromIPFS(chat.metadataCid);
+        } catch (error) {
+          console.warn("Chat metadata fetch failed:", error);
+          chat.metadata = null;
+        }
+      }
+      return chat;
+    })
+  );
+}
+
+export async function fetchChatsByPatient(contract, patientId) {
+  if (!contract || !patientId) return [];
+  const rows = await contract.getChatsByPatient(patientId);
+  return Promise.all(
+    rows.map(async (row) => {
+      const chat = normalizeChatRow(row);
+      if (chat.metadataCid) {
+        try {
+          chat.metadata = await fetchFromIPFS(chat.metadataCid);
+        } catch (error) {
+          console.warn("Chat metadata fetch failed:", error);
+          chat.metadata = null;
+        }
+      }
+      return chat;
+    })
+  );
+}
+
+export async function fetchChatMessages(contract, chatId) {
+  if (!contract || !chatId) return [];
+  const filter = contract.filters?.ChatMessageLogged?.(BigInt(chatId));
+  if (!filter) return [];
+  const latestBlock = await contract.provider.getBlockNumber();
+  const fromBlock = Math.max(0, latestBlock - 200000);
+  const events = await contract.queryFilter(filter, fromBlock, latestBlock).catch(async () => {
+    return contract.queryFilter(filter, 0, latestBlock);
+  });
+  const messages = await Promise.all(
+    events.map(async (event) => {
+      const { chatId: idArg, sender, messageCid, timestamp } = event.args || {};
+      let payload = null;
+      if (messageCid) {
+        try {
+          payload = await fetchFromIPFS(messageCid);
+        } catch (error) {
+          console.warn("Failed to load chat message payload:", error);
+        }
+      }
+      return {
+        id: `${event.transactionHash}-${event.logIndex}`,
+        chatId: toNumber(idArg),
+        sender: sender?.toLowerCase?.() || sender,
+        cid: messageCid,
+        payload,
+        createdAt: toNumber(timestamp) * 1000 || Date.now()
+      };
+    })
+  );
+  return messages.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 }

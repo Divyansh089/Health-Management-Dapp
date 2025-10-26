@@ -6,12 +6,15 @@ import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
 import { fetchAppointmentsByDoctor, fetchPatients } from "../../../lib/queries.js";
 import { formatEntityId } from "../../../lib/format.js";
+import DoctorProfileModal from "../../../components/Modals/DoctorProfileModal.jsx";
+import { fetchFromIPFS } from "../../../lib/ipfs.js";
 import "./Doctor.css";
 
 export default function DoctorDashboard() {
   const queryClient = useQueryClient();
   const { role, doctorId, signerContract, readonlyContract } = useWeb3();
   const [toast, setToast] = useState(null);
+  const [isProfileOpen, setProfileOpen] = useState(false);
 
   const isDoctor = role === ROLES.DOCTOR;
 
@@ -23,16 +26,15 @@ export default function DoctorDashboard() {
       
       // Fetch IPFS profile data to get the doctor's name
       let displayName = null;
+      let profileData = null;
       if (row.ipfs) {
         try {
-          const ipfsUrl = row.ipfs.startsWith("http") 
-            ? row.ipfs 
-            : `https://ipfs.io/ipfs/${row.ipfs.replace("ipfs://", "")}`;
-          const response = await fetch(ipfsUrl);
-          if (response.ok) {
-            const profile = await response.json();
-            displayName = profile?.name || profile?.fullName || null;
-          }
+          profileData = await fetchFromIPFS(row.ipfs);
+          displayName =
+            profileData?.name ||
+            profileData?.fullName ||
+            profileData?.displayName ||
+            null;
         } catch (error) {
           console.error("Error fetching doctor profile:", error);
         }
@@ -46,7 +48,8 @@ export default function DoctorDashboard() {
         appointments: Number(row.appointments),
         successes: Number(row.successes),
         approved: row.approved,
-        displayName: displayName
+        displayName,
+        profileData
       };
     }
   });
@@ -138,34 +141,72 @@ export default function DoctorDashboard() {
         {doctorQuery.isLoading ? (
           <p>Loading profile...</p>
         ) : doctor ? (
-          <div className="doctor-grid">
-            <div className="doctor-tile">
-              <span className="tile-label">Doctor ID</span>
-              <strong className="tile-value">{doctor.humanId || formatEntityId("DOC", doctor.id)}</strong>
+          <>
+            <div className="doctor-grid">
+              <div className="doctor-tile">
+                <span className="tile-label">Doctor ID</span>
+                <strong className="tile-value">{doctor.humanId || formatEntityId("DOC", doctor.id)}</strong>
+              </div>
+              <div className="doctor-tile">
+                <span className="tile-label">Wallet</span>
+                <strong className="tile-value mono">{doctor.account}</strong>
+              </div>
+              <div className="doctor-tile">
+                <span className="tile-label">Appointments</span>
+                <strong className="tile-value">{doctor.appointments}</strong>
+              </div>
+              <div className="doctor-tile">
+                <span className="tile-label">Completed</span>
+                <strong className="tile-value">{doctor.successes}</strong>
+              </div>
+              <div className="doctor-tile">
+                <span className="tile-label">Success Rate</span>
+                <strong className="tile-value">
+                  {successRate !== null ? `${successRate}%` : "No data"}
+                </strong>
+              </div>
+              <div className="doctor-tile">
+                <span className="tile-label">Status</span>
+                <strong className="tile-value">{doctor.approved ? "Approved" : "Pending"}</strong>
+              </div>
             </div>
-            <div className="doctor-tile">
-              <span className="tile-label">Wallet</span>
-              <strong className="tile-value mono">{doctor.account}</strong>
+            {doctor.profileData?.bio && (
+              <p className="doctor-bio">{doctor.profileData.bio}</p>
+            )}
+            <div className="doctor-profile-highlights">
+              {doctor.profileData?.specialties?.length ? (
+                <div className="doctor-highlight">
+                  <span className="highlight-label">Specialties</span>
+                  <span className="highlight-value">
+                    {doctor.profileData.specialties.join(", ")}
+                  </span>
+                </div>
+              ) : null}
+              {doctor.profileData?.languages?.length ? (
+                <div className="doctor-highlight">
+                  <span className="highlight-label">Languages</span>
+                  <span className="highlight-value">
+                    {doctor.profileData.languages.join(", ")}
+                  </span>
+                </div>
+              ) : null}
+              {doctor.profileData?.experienceYears ? (
+                <div className="doctor-highlight">
+                  <span className="highlight-label">Experience</span>
+                  <span className="highlight-value">
+                    {doctor.profileData.experienceYears} years
+                  </span>
+                </div>
+              ) : null}
             </div>
-            <div className="doctor-tile">
-              <span className="tile-label">Appointments</span>
-              <strong className="tile-value">{doctor.appointments}</strong>
-            </div>
-            <div className="doctor-tile">
-              <span className="tile-label">Completed</span>
-              <strong className="tile-value">{doctor.successes}</strong>
-            </div>
-            <div className="doctor-tile">
-              <span className="tile-label">Success Rate</span>
-              <strong className="tile-value">
-                {successRate !== null ? `${successRate}%` : "No data"}
-              </strong>
-            </div>
-            <div className="doctor-tile">
-              <span className="tile-label">Status</span>
-              <strong className="tile-value">{doctor.approved ? "Approved" : "Pending"}</strong>
-            </div>
-          </div>
+            <button
+              type="button"
+              className="view-profile-btn doctor-profile-btn"
+              onClick={() => setProfileOpen(true)}
+            >
+              View detailed profile
+            </button>
+          </>
         ) : (
           <p>No doctor profile found for this wallet.</p>
         )}
@@ -195,6 +236,11 @@ export default function DoctorDashboard() {
           duration={4000}
         />
       )}
+      <DoctorProfileModal
+        doctor={doctor}
+        isOpen={isProfileOpen && !!doctor}
+        onClose={() => setProfileOpen(false)}
+      />
     </section>
   );
 }

@@ -5,7 +5,8 @@ const SIDEBAR_ITEMS = [
   { to: "/doctor", label: "Dashboard", icon: "📊" },
   { to: "/doctor/patients", label: "Patients", icon: "👥" },
   { to: "/doctor/prescriptions", label: "Prescriptions", icon: "📝" },
-  { to: "/doctor/request-medicine", label: "Request Medicine", icon: "💊" }
+  { to: "/doctor/chats", label: "Chats", icon: "💬" },
+  { to: "/doctor/request-medicine", label: "Request Medicine", icon: "📥" }
 ];
 
 export default function DoctorLayout() {

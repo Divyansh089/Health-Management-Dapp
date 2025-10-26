@@ -520,6 +520,11 @@ export default function AdminDashboard() {
             )}
           </h2>
           <p>High‑level view across roles, inventory, and activity.</p>
+          <div className="dash-quick-actions">
+            <a className="qa-btn" href="/admin/add-medicine">➕ Add Medicine</a>
+            <a className="qa-btn alt" href="/admin/fees">💸 Update Fees</a>
+            <a className="qa-btn ghost" href="/admin/activity">📈 View Activity</a>
+          </div>
         </div>
         <div className="dash-hero-blob" aria-hidden />
       </div>
@@ -626,5 +631,3 @@ export default function AdminDashboard() {
     </section>
   );
 }
-
-
