@@ -326,26 +326,167 @@ export async function fetchChatsByPatient(contract, patientId) {
 }
 
 export async function fetchChatMessages(contract, chatId) {
-  if (!contract || !chatId) return [];
-  const filter = contract.filters?.ChatMessageLogged?.(BigInt(chatId));
-  if (!filter) return [];
-  const latestBlock = await contract.provider.getBlockNumber();
-  const fromBlock = Math.max(0, latestBlock - 200000);
-  const events = await contract.queryFilter(filter, fromBlock, latestBlock).catch(async () => {
-    return contract.queryFilter(filter, 0, latestBlock);
+  if (!contract || !chatId) {
+    console.warn("[fetchChatMessages] Missing contract or chatId", { contract: !!contract, chatId });
+    return [];
+  }
+  
+  console.debug("[fetchChatMessages] Starting fetch", { 
+    chatId, 
+    contractAddress: contract.target || contract.address,
+    hasFilters: !!contract.filters,
+    hasChatMessageLoggedFilter: !!contract.filters?.ChatMessageLogged
   });
-  const messages = await Promise.all(
-    events.map(async (event) => {
+  
+  try {
+    // Check if the contract has the required filter
+    if (!contract.filters?.ChatMessageLogged) {
+      console.error("[fetchChatMessages] Contract missing ChatMessageLogged filter");
+      return [];
+    }
+
+    const filter = contract.filters.ChatMessageLogged(BigInt(chatId));
+    console.debug("[fetchChatMessages] Created filter", { 
+      chatId, 
+      filterTopics: filter.topics,
+      filterAddress: filter.address 
+    });
+    
+    const provider = contract.provider;
+    if (!provider) {
+      console.error("[fetchChatMessages] No provider available");
+      return [];
+    }
+
+    let endBlock;
+    try {
+      endBlock = await provider.getBlockNumber();
+      console.debug("[fetchChatMessages] Got latest block", { endBlock });
+    } catch (error) {
+      console.error("[fetchChatMessages] Failed to get block number", error);
+      return [];
+    }
+    
+    // Start from a reasonable range - look back 10000 blocks
+    let startBlock = Math.max(0, endBlock - 10000);
+    const logs = [];
+    console.debug("[fetchChatMessages] Starting log search", { chatId, startBlock, endBlock });
+
+    // Try to fetch all logs in chunks
+    let currentStart = startBlock;
+    while (currentStart <= endBlock) {
+      const currentEnd = Math.min(currentStart + 1000, endBlock);
+      
+      try {
+        console.debug("[fetchChatMessages] Fetching log chunk", { 
+          chatId, 
+          fromBlock: currentStart, 
+          toBlock: currentEnd 
+        });
+        
+        const chunk = await provider.getLogs({
+          address: contract.target || contract.address,
+          topics: filter.topics,
+          fromBlock: currentStart,
+          toBlock: currentEnd
+        });
+        
+        logs.push(...chunk);
+        console.debug("[fetchChatMessages] Got chunk", { 
+          chatId, 
+          chunkSize: chunk.length, 
+          totalLogs: logs.length 
+        });
+        
+        currentStart = currentEnd + 1;
+        
+      } catch (error) {
+        console.error("[fetchChatMessages] Log fetch error for chunk", { 
+          chatId, 
+          fromBlock: currentStart, 
+          toBlock: currentEnd, 
+          error: error.message 
+        });
+        
+        // If this fails, try a smaller range
+        if (currentEnd === currentStart) {
+          // Can't get smaller, skip this block
+          currentStart += 1;
+        } else {
+          // Reduce chunk size
+          const newChunkSize = Math.max(1, Math.floor((currentEnd - currentStart + 1) / 2));
+          currentStart = Math.min(currentStart + newChunkSize, currentEnd + 1);
+        }
+      }
+    }
+
+    console.debug("[fetchChatMessages] Total logs collected", { chatId, logCount: logs.length });
+
+    if (logs.length === 0) {
+      console.warn("[fetchChatMessages] No logs found for chat", { chatId });
+      return [];
+    }
+
+    // Parse the events
+    const events = [];
+    for (const log of logs) {
+      try {
+        const event = contract.interface.parseLog(log);
+        events.push(event);
+        console.debug("[fetchChatMessages] Parsed event", { 
+          chatId, 
+          transactionHash: log.transactionHash,
+          logIndex: log.logIndex,
+          eventArgs: event.args 
+        });
+      } catch (parseError) {
+        console.warn("[fetchChatMessages] Failed to parse log", { 
+          chatId, 
+          logTxHash: log.transactionHash,
+          error: parseError.message 
+        });
+      }
+    }
+    
+    console.debug("[fetchChatMessages] Parsed events", { chatId, eventCount: events.length });
+
+    // Process messages with improved error handling
+    const messages = [];
+    for (let i = 0; i < events.length; i++) {
+      const event = events[i];
       const { chatId: idArg, sender, messageCid, timestamp } = event.args || {};
+      
+      console.debug("[fetchChatMessages] Processing event", { 
+        chatId, 
+        eventIndex: i, 
+        sender, 
+        messageCid, 
+        timestamp: toNumber(timestamp),
+        idArg: toNumber(idArg)
+      });
+      
       let payload = null;
       if (messageCid) {
         try {
+          console.debug("[fetchChatMessages] Fetching IPFS content", { chatId, messageCid });
           payload = await fetchFromIPFS(messageCid);
+          console.debug("[fetchChatMessages] IPFS content loaded", { 
+            chatId, 
+            messageCid, 
+            payloadType: typeof payload,
+            hasText: !!(payload?.body?.text || payload?.text)
+          });
         } catch (error) {
-          console.warn("Failed to load chat message payload:", error);
+          console.warn("[fetchChatMessages] IPFS fetch failed", { 
+            chatId, 
+            messageCid, 
+            error: error.message 
+          });
+          // Continue without payload - we'll show the CID as fallback
         }
       }
-      return {
+      
+      const message = {
         id: `${event.transactionHash}-${event.logIndex}`,
         chatId: toNumber(idArg),
         sender: sender?.toLowerCase?.() || sender,
@@ -353,7 +494,36 @@ export async function fetchChatMessages(contract, chatId) {
         payload,
         createdAt: toNumber(timestamp) * 1000 || Date.now()
       };
-    })
-  );
-  return messages.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      
+      messages.push(message);
+      console.debug("[fetchChatMessages] Created message", { 
+        chatId, 
+        messageId: message.id, 
+        sender: message.sender, 
+        hasPayload: !!message.payload,
+        createdAt: message.createdAt
+      });
+    }
+    
+    const sortedMessages = messages.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    console.debug("[fetchChatMessages] Final result", { 
+      chatId, 
+      messageCount: sortedMessages.length,
+      messages: sortedMessages.map(m => ({
+        id: m.id,
+        sender: m.sender,
+        hasPayload: !!m.payload,
+        createdAt: m.createdAt
+      }))
+    });
+    
+    return sortedMessages;
+  } catch (error) {
+    console.error("[fetchChatMessages] Fatal error", { 
+      chatId, 
+      error: error.message, 
+      stack: error.stack 
+    });
+    throw error;
+  }
 }

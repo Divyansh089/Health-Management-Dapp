@@ -15,6 +15,19 @@ function resolveText(payload) {
   return null;
 }
 
+function debugMessage(message, index) {
+  console.debug(`[ChatPanel] Message ${index}:`, {
+    id: message.id,
+    sender: message.sender,
+    cid: message.cid,
+    hasPayload: !!message.payload,
+    payloadType: typeof message.payload,
+    resolvedText: resolveText(message.payload),
+    createdAt: message.createdAt,
+    rawPayload: message.payload
+  });
+}
+
 export default function ChatPanel({
   title,
   subtitle,
@@ -33,7 +46,23 @@ export default function ChatPanel({
   const [draft, setDraft] = useState("");
   const endRef = useRef(null);
 
-  const normalizedMessages = useMemo(() => messages || [], [messages]);
+  const normalizedMessages = useMemo(() => {
+    const msgArray = messages || [];
+    console.debug("[ChatPanel] Processing messages", { 
+      messageCount: msgArray.length, 
+      currentAccount,
+      messages: msgArray.map((msg, idx) => {
+        debugMessage(msg, idx);
+        return {
+          id: msg.id,
+          sender: msg.sender,
+          hasPayload: !!msg.payload,
+          resolvedText: resolveText(msg.payload)
+        };
+      })
+    });
+    return msgArray;
+  }, [messages, currentAccount]);
 
   useEffect(() => {
     if (!endRef.current) return;
@@ -92,9 +121,21 @@ export default function ChatPanel({
             <p>No messages yet. {closed ? "Chat is closed." : "Start the conversation."}</p>
           </div>
         ) : (
-          normalizedMessages.map((message) => {
-            const text = resolveText(message.payload) || `Message CID: ${message.cid}`;
-            const isSelf = currentAccount && message.sender === currentAccount.toLowerCase();
+          normalizedMessages.map((message, index) => {
+            const text = resolveText(message.payload);
+            const fallbackText = text || `Message CID: ${message.cid}`;
+            const isSelf = currentAccount && message.sender && message.sender.toLowerCase() === currentAccount.toLowerCase();
+            
+            console.debug(`[ChatPanel] Rendering message ${index}:`, {
+              messageId: message.id,
+              sender: message.sender,
+              currentAccount,
+              isSelf,
+              hasText: !!text,
+              text: text || 'NO TEXT',
+              fallbackText
+            });
+            
             return (
               <article
                 key={message.id}
@@ -104,7 +145,11 @@ export default function ChatPanel({
                   <span>{isSelf ? "You" : peerLabel || "Participant"}</span>
                   <time>{formatDate(message.createdAt)}</time>
                 </div>
-                <p>{text}</p>
+                <p>{fallbackText}</p>
+                {/* Debug info - remove in production */}
+                <small style={{ opacity: 0.5, fontSize: '10px' }}>
+                  ID: {message.id} | Sender: {message.sender} | CID: {message.cid}
+                </small>
               </article>
             );
           })

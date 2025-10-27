@@ -37,8 +37,19 @@ export default function PatientChats() {
   const messagesQuery = useQuery({
     queryKey: ["chat", "messages", selectedChatId],
     enabled: !!selectedChatId && !!readonlyContract,
-    queryFn: () => fetchChatMessages(readonlyContract, selectedChatId),
-    refetchInterval: 15000
+    queryFn: async () => {
+      console.log("[PatientChats] Fetching messages for chat:", selectedChatId);
+      const result = await fetchChatMessages(readonlyContract, selectedChatId);
+      console.log("[PatientChats] Fetched messages result:", result);
+      return result;
+    },
+    refetchInterval: 15000,
+    retry: 3,
+    retryDelay: 2000,
+    onError: (error) => {
+      console.error("[PatientChats] Message query error:", error);
+      setToast({ type: "error", message: `Failed to load messages: ${error.message}` });
+    }
   });
 
   useEffect(() => {

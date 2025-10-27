@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ChatPanel from "../../../components/Chat/ChatPanel.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
+import MessageDebugger from "../../../components/Debug/MessageDebugger.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
 import {
@@ -43,9 +44,55 @@ export default function DoctorChats() {
   const messagesQuery = useQuery({
     queryKey: ["chat", "messages", selectedChatId],
     enabled: !!selectedChatId && !!readonlyContract,
-    queryFn: () => fetchChatMessages(readonlyContract, selectedChatId),
-    refetchInterval: 15000
+    queryFn: async () => {
+      console.log("[DoctorChats] Fetching messages for chat:", selectedChatId);
+      const result = await fetchChatMessages(readonlyContract, selectedChatId);
+      console.log("[DoctorChats] Fetched messages result:", result);
+      return result;
+    },
+    refetchInterval: 15000,
+    retry: 3,
+    retryDelay: 2000,
+    onError: (error) => {
+      console.error("[DoctorChats] Message query error:", error);
+      setToast({ type: "error", message: `Failed to load messages: ${error.message}` });
+    }
   });
+
+  // Manual refresh function
+  const refreshMessages = async () => {
+    if (selectedChatId) {
+      console.log("[DoctorChats] Manual refresh triggered for chat:", selectedChatId);
+      await queryClient.invalidateQueries({ queryKey: ["chat", "messages", selectedChatId] });
+      await messagesQuery.refetch();
+    }
+  };
+
+  useEffect(() => {
+    console.debug("[chat] messages query state", {
+      selectedChatId,
+      status: messagesQuery.status,
+      isFetching: messagesQuery.isFetching,
+      isFetched: messagesQuery.isFetched,
+      messageCount: messagesQuery.data?.length || 0,
+      error: messagesQuery.error,
+      account: account,
+      chatId: selectedChatId
+    });
+    
+    // Log detailed message data for debugging
+    if (messagesQuery.data?.length > 0) {
+      console.debug("[chat] message details", messagesQuery.data.map(msg => ({
+        id: msg.id,
+        sender: msg.sender,
+        currentAccount: account,
+        isSelf: account && msg.sender === account.toLowerCase(),
+        hasPayload: !!msg.payload,
+        createdAt: msg.createdAt,
+        cid: msg.cid
+      })));
+    }
+  }, [messagesQuery.status, messagesQuery.isFetching, messagesQuery.isFetched, messagesQuery.data, messagesQuery.error, selectedChatId, account]);
 
   useEffect(() => {
     if (!chatListQuery.data?.length) return;
@@ -269,26 +316,53 @@ export default function DoctorChats() {
 
         <div className="chat-main">
           {activeChat ? (
-            <ChatPanel
-              title={`Chat with ${peerLabel}`}
-              subtitle={`Started ${formatDate(activeChat.createdAt)}`}
-              messages={messages}
-              currentAccount={account}
-              peerLabel={peerLabel}
-              metadata={{
-                appointmentId: activeChat.appointmentId,
-                patientId: activeChat.patientId,
-                doctorId: activeChat.doctorId,
-                createdAt: activeChat.createdAt,
-                subject: activeChat.metadata?.subject,
-                reason: activeChat.metadata?.reason
-              }}
-              onSend={(text) => sendMessageMutation.mutate({ chatId: activeChat.id, text })}
-              sending={sendMessageMutation.isPending}
-              closed={activeChat.closed}
-              canClose={!activeChat.closed}
-              onClose={() => closeChatMutation.mutate(activeChat.id)}
-            />
+            <div>
+              {/* Debug and refresh controls */}
+              <div style={{ padding: '10px', borderBottom: '1px solid #eee', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button 
+                  onClick={refreshMessages}
+                  style={{ padding: '5px 10px', fontSize: '12px' }}
+                  disabled={messagesQuery.isFetching}
+                >
+                  {messagesQuery.isFetching ? 'Refreshing...' : 'Refresh Messages'}
+                </button>
+                <span style={{ fontSize: '12px', color: '#666' }}>
+                  Status: {messagesQuery.status} | Messages: {messages.length} | Loading: {messagesQuery.isFetching ? 'Yes' : 'No'}
+                </span>
+                <span style={{ fontSize: '12px', color: '#666' }}>
+                  Chat ID: {selectedChatId} | Account: {account ? `${account.substring(0, 6)}...${account.substring(account.length - 4)}` : 'None'}
+                </span>
+                {messagesQuery.error && (
+                  <span style={{ fontSize: '12px', color: 'red' }}>
+                    Error: {messagesQuery.error.message}
+                  </span>
+                )}
+              </div>
+              
+              {/* Add debugger component */}
+              <MessageDebugger chatId={selectedChatId} />
+              
+              <ChatPanel
+                title={`Chat with ${peerLabel}`}
+                subtitle={`Started ${formatDate(activeChat.createdAt)}`}
+                messages={messages}
+                currentAccount={account}
+                peerLabel={peerLabel}
+                metadata={{
+                  appointmentId: activeChat.appointmentId,
+                  patientId: activeChat.patientId,
+                  doctorId: activeChat.doctorId,
+                  createdAt: activeChat.createdAt,
+                  subject: activeChat.metadata?.subject,
+                  reason: activeChat.metadata?.reason
+                }}
+                onSend={(text) => sendMessageMutation.mutate({ chatId: activeChat.id, text })}
+                sending={sendMessageMutation.isPending}
+                closed={activeChat.closed}
+                canClose={!activeChat.closed}
+                onClose={() => closeChatMutation.mutate(activeChat.id)}
+              />
+            </div>
           ) : (
             <div className="chat-empty-state panel">
               <h3>Select a chat</h3>

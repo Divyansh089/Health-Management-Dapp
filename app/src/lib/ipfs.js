@@ -175,6 +175,8 @@ export async function fetchFromIPFS(input) {
   const isDirectHttp = /^https?:\/\//i.test(String(input));
   const candidates = [];
 
+  console.debug('[IPFS] Starting fetch', { input, normalized: norm, isDirectHttp });
+
   // If a direct URL was provided (e.g., full gateway URL), try it first.
   if (isDirectHttp && !norm.includes('://')) {
     candidates.push(String(input));
@@ -187,12 +189,17 @@ export async function fetchFromIPFS(input) {
   candidates.push(
     `https://cloudflare-ipfs.com/ipfs/${norm}`,
     `https://dweb.link/ipfs/${norm}`,
-    `https://gateway.pinata.cloud/ipfs/${norm}`
+    `https://gateway.pinata.cloud/ipfs/${norm}`,
+    `https://ipfs.filebase.io/ipfs/${norm}`,
+    `https://4everland.io/ipfs/${norm}`
   );
+
+  console.debug('[IPFS] Gateway candidates', candidates);
 
   const errors = [];
   for (const url of candidates) {
     try {
+      console.debug('[IPFS] Trying gateway', url);
       const resp = await fetchWithTimeout(url, 8000, {
         // Hint for JSON; many gateways still deliver correct CORS headers
         headers: { Accept: 'application/json, text/plain;q=0.9, */*;q=0.8' },
@@ -202,20 +209,26 @@ export async function fetchFromIPFS(input) {
 
       // Try JSON first; if it fails, bubble up so next gateway can be tried
       const text = await resp.text();
+      console.debug('[IPFS] Got response text', { url, length: text.length, preview: text.substring(0, 100) });
+      
       try {
         const json = JSON.parse(text);
+        console.debug('[IPFS] Successfully parsed JSON', { url, json });
         return json;
       } catch (e) {
+        console.warn('[IPFS] Failed to parse as JSON, trying next gateway', { url, error: e.message, text: text.substring(0, 200) });
         throw new Error('Non-JSON content');
       }
     } catch (e) {
-      errors.push(`${url} -> ${e.message}`);
+      const errorMsg = `${url} -> ${e.message}`;
+      errors.push(errorMsg);
+      console.warn('[IPFS] Gateway failed', errorMsg);
       // continue to next gateway
     }
   }
 
   // If we reach here, all gateways failed or content was not JSON
   const msg = `all gateways failed for ${norm}: ${errors.join(' | ')}`;
-  console.error('IPFS fetch failed:', msg);
+  console.error('[IPFS] All gateways failed', { input, norm, errors });
   throw new Error(`IPFS fetch failed: ${msg}`);
 }
