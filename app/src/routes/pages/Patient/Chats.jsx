@@ -137,55 +137,42 @@ export default function PatientChats() {
 
       <div className="chat-layout">
         <aside className="chat-sidebar">
+          {/* Doctor Selector Dropdown */}
           <section className="chat-sidebar-section">
             <div className="chat-sidebar-header">
-              <h3>💬 Your Doctors</h3>
-              <span className="badge">{chats.length}</span>
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+                Select Doctor
+              </h3>
             </div>
-            {chats.length === 0 ? (
-              <p className="chat-sidebar-empty">
-                Your doctor will start a chat before each appointment. Once it appears here you can reply in real time.
-              </p>
-            ) : (
-              <ul className="chat-session-list">
+            <div className="chat-selector-container">
+              <select
+                className="chat-patient-selector"
+                value={selectedChatId || ""}
+                onChange={(e) => setSelectedChatId(Number(e.target.value))}
+              >
+                <option value="" disabled>Choose a doctor to chat with...</option>
                 {chats.map((chat) => {
                   const doctor = doctorLookup[chat.doctorId];
                   const label = doctor?.displayName
                     ? `Dr. ${doctor.displayName}`
                     : doctor?.humanId || formatEntityId("DOC", chat.doctorId);
-                  const isActive = selectedChatId === chat.id;
-                  const doctorId = doctor?.humanId || `DOC-${chat.doctorId}`;
-                  const specialty = doctor?.specialty || "General Practice";
-                  
                   return (
-                    <li key={chat.id}>
-                      <button
-                        type="button"
-                        className={`chat-session-btn ${isActive ? "active" : ""}`}
-                        onClick={() => setSelectedChatId(chat.id)}
-                      >
-                        <div className="session-avatar doctor-avatar">
-                          {label.replace('Dr. ', '').charAt(0).toUpperCase()}
-                        </div>
-                        <div className="session-info">
-                          <div className="session-name-row">
-                            <strong className="session-name">{label}</strong>
-                            {!chat.closed ? (
-                              <span className="chat-session-pill open">Active</span>
-                            ) : (
-                              <span className="chat-session-pill closed">Closed</span>
-                            )}
-                          </div>
-                          <span className="session-specialty">🩺 {specialty}</span>
-                          <span className="session-date">💬 Started {formatDate(chat.createdAt)}</span>
-                        </div>
-                      </button>
-                    </li>
+                    <option key={chat.id} value={chat.id}>
+                      {label} {chat.closed ? "(Closed)" : "(Active)"}
+                    </option>
                   );
                 })}
-              </ul>
-            )}
+              </select>
+              <svg className="chat-selector-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
           </section>
+
+
         </aside>
 
         <div className="chat-main">

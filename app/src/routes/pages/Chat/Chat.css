@@ -35,8 +35,8 @@
 /* Chat Layout */
 .chat-layout {
   display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 20px;
+  grid-template-columns: 400px 1fr;
+  gap: 40px;
   height: calc(100vh - 200px);
   min-height: 600px;
 }
@@ -72,16 +72,21 @@
   border-radius: 20px;
   border: 1px solid #e2e8f0;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+}
+
+.chat-sidebar-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .chat-sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .chat-sidebar-header h3 {
@@ -91,8 +96,13 @@
   color: #0f172a;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   letter-spacing: -0.01em;
+}
+
+.chat-sidebar-header h3 svg {
+  flex-shrink: 0;
+  color: #3b82f6;
 }
 
 .badge {
@@ -116,6 +126,74 @@
   margin: 0;
   background: #f8fafc;
   font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Patient Selector Dropdown */
+.chat-selector-container {
+  padding: 24px;
+  position: relative;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-bottom: 3px solid #3b82f6;
+}
+
+.chat-patient-selector {
+  width: 100%;
+  padding: 18px 52px 18px 24px;
+  border: 3px solid #3b82f6;
+  border-radius: 16px;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0f172a;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  letter-spacing: -0.01em;
+}
+
+.chat-patient-selector:hover {
+  border-color: #2563eb;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+.chat-patient-selector:focus {
+  outline: none;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.2), 0 8px 24px rgba(59, 130, 246, 0.35);
+  transform: translateY(-2px);
+}
+
+.chat-patient-selector option {
+  padding: 16px;
+  font-weight: 700;
+  font-size: 1.0625rem;
+  background: #ffffff;
+}
+
+.chat-selector-icon {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #3b82f6;
+  transition: all 0.3s ease;
+}
+
+.chat-patient-selector:hover+.chat-selector-icon {
+  color: #1d4ed8;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.chat-patient-selector:focus+.chat-selector-icon {
+  color: #1d4ed8;
 }
 
 /* Appointment List */
@@ -189,10 +267,19 @@
 
 .appointment-time,
 .session-date {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.8125rem;
   color: #64748b;
   font-weight: 500;
+}
+
+.appointment-time svg,
+.session-date svg,
+.session-id svg {
+  flex-shrink: 0;
+  opacity: 0.7;
 }
 
 .chat-start-btn {
@@ -207,6 +294,14 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.chat-start-btn svg {
+  flex-shrink: 0;
 }
 
 .chat-start-btn:hover:not(:disabled) {
@@ -300,7 +395,9 @@
 
 .session-id,
 .session-specialty {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.8125rem;
   color: #64748b;
   font-weight: 500;
@@ -330,6 +427,14 @@
   text-transform: uppercase;
   letter-spacing: 0.3px;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-session-pill svg {
+  width: 8px;
+  height: 8px;
 }
 
 .chat-session-pill.open {
@@ -362,6 +467,18 @@
   padding: 60px 40px;
   text-align: center;
   background: #f8fafc;
+}
+
+.chat-empty-state::before {
+  content: '';
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%);
+  border-radius: 50%;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chat-empty-state h3 {
