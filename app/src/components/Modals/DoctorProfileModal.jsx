@@ -3,6 +3,53 @@ import { fetchFromIPFS } from '../../lib/ipfs.js';
 import { formatEntityId } from '../../lib/format.js';
 import './Modal.css';
 
+// Country to timezone mapping
+const getTimezoneByCountry = (country) => {
+  const timezoneMap = {
+    'India': 'Asia/Kolkata',
+    'United States': 'America/New_York',
+    'United Kingdom': 'Europe/London',
+    'Canada': 'America/Toronto',
+    'Australia': 'Australia/Sydney',
+    'Germany': 'Europe/Berlin',
+    'France': 'Europe/Paris',
+    'Japan': 'Asia/Tokyo',
+    'China': 'Asia/Shanghai',
+    'Brazil': 'America/Sao_Paulo',
+    'Mexico': 'America/Mexico_City',
+    'Russia': 'Europe/Moscow',
+    'South Africa': 'Africa/Johannesburg',
+    'UAE': 'Asia/Dubai',
+    'Singapore': 'Asia/Singapore',
+    'Malaysia': 'Asia/Kuala_Lumpur',
+    'Thailand': 'Asia/Bangkok',
+    'Indonesia': 'Asia/Jakarta',
+    'Philippines': 'Asia/Manila',
+    'Pakistan': 'Asia/Karachi',
+    'Bangladesh': 'Asia/Dhaka',
+    'Egypt': 'Africa/Cairo',
+    'Nigeria': 'Africa/Lagos',
+    'Kenya': 'Africa/Nairobi',
+    'Argentina': 'America/Argentina/Buenos_Aires',
+    'Chile': 'America/Santiago',
+    'Colombia': 'America/Bogota',
+    'Spain': 'Europe/Madrid',
+    'Italy': 'Europe/Rome',
+    'Netherlands': 'Europe/Amsterdam',
+    'Sweden': 'Europe/Stockholm',
+    'Norway': 'Europe/Oslo',
+    'Denmark': 'Europe/Copenhagen',
+    'Finland': 'Europe/Helsinki',
+    'Poland': 'Europe/Warsaw',
+    'Turkey': 'Europe/Istanbul',
+    'Saudi Arabia': 'Asia/Riyadh',
+    'South Korea': 'Asia/Seoul',
+    'Vietnam': 'Asia/Ho_Chi_Minh',
+    'New Zealand': 'Pacific/Auckland'
+  };
+  return timezoneMap[country] || 'UTC';
+};
+
 export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -63,8 +110,8 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
           const profileData = {
             name: actualData.name || 'Unknown Doctor',
             specialty: actualData.specialties ? actualData.specialties.join(', ') : 'Not specified',
-            qualification: 'Medical Professional', // Could be enhanced with actual qualification data
-            experience: actualData.experienceYears ? `${actualData.experienceYears} years` : 'Not specified',
+            qualification: actualData.degrees ? actualData.degrees.join(', ') : 'Medical Professional',
+            experience: actualData.experienceYears ? `${actualData.experienceYears} years` : (actualData.experience ? `${actualData.experience} years` : 'Not specified'),
             hospital: 'Healthcare Provider', // Could be enhanced with actual hospital data
             phone: 'Contact via platform', // For privacy
             email: actualData.contact?.email || 'Not provided',
@@ -74,9 +121,9 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
             bio: actualData.bio || 'No bio provided',
             address: actualData.location ? `${actualData.location.city}, ${actualData.location.country}` : 'Not provided',
             // Additional fields from actual data
-            city: actualData.location?.city || 'Not specified',
-            country: actualData.location?.country || 'Not specified',
-            timezone: actualData.location?.timezone || 'Not specified',
+            city: actualData.city || actualData.location?.city || 'Not specified',
+            country: actualData.country || actualData.location?.country || 'Not specified',
+            timezone: actualData.timezone || (actualData.country ? getTimezoneByCountry(actualData.country) : (actualData.location?.country ? getTimezoneByCountry(actualData.location.country) : 'Not specified')),
             licenseNumber: actualData.license?.number || 'Not provided',
             licenseIssuer: actualData.license?.issuer || 'Not provided',
             website: actualData.links?.website || null,
@@ -243,11 +290,15 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
                   <div className="availability-grid">
                     {profileData.availability?.length > 0 ? (
                       profileData.availability.map((slot, index) => {
-                        const timeText = slot.time || (slot.from && slot.to ? `${slot.from} - ${slot.to}` : null);
+                        // Handle different availability formats
+                        const day = slot.day || slot.dayOfWeek || `Day ${index + 1}`;
+                        const timeText = slot.time || 
+                                       (slot.from && slot.to ? `${slot.from} - ${slot.to}` : null) ||
+                                       (slot.startTime && slot.endTime ? `${slot.startTime} - ${slot.endTime}` : null);
                         return (
                           <div key={index} className="availability-item">
-                            <strong>{slot.day}:</strong>
-                            <span>{timeText || 'Not specified'}</span>
+                            <strong>{day}:</strong>
+                            <span>{timeText || 'Available'}</span>
                           </div>
                         );
                       })
@@ -298,19 +349,9 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
                       <strong>Doctor ID:</strong>
                       <span className="wallet-address">{doctor.humanId || formatEntityId('DOC', doctor.id)}</span>
                     </div>
-                    {profileData.submittedWallet && (
-                      <div className="info-item">
-                        <strong>Submitted Wallet:</strong>
-                        <span className="wallet-address">{profileData.submittedWallet}</span>
-                      </div>
-                    )}
                     <div className="info-item">
-                      <strong>Wallet Address:</strong>
+                      <strong>Doctor Wallet Address:</strong>
                       <span className="wallet-address">{doctor.account}</span>
-                    </div>
-                    <div className="info-item">
-                      <strong>IPFS Profile:</strong>
-                      <span className="ipfs-link">{doctor.ipfs}</span>
                     </div>
                   </div>
                 </div>

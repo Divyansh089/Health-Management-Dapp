@@ -7,11 +7,15 @@ async function main() {
   const address = await c.getAddress();
   console.log("Healthcare deployed:", address);
 
-  // optional verify
-  if (hre.network.name === "holesky" && process.env.ETHERSCAN_API_KEY) {
-    console.log("Verifying on Etherscan...");
+  // optional verify on supported explorers (holesky or hoodi)
+  if ((hre.network.name === "holesky" || hre.network.name === "hoodi") && process.env.ETHERSCAN_API_KEY) {
+    console.log("Verifying on Etherscan-compatible explorer...");
     await new Promise(r => setTimeout(r, 30_000));
-    await hre.run("verify:verify", { address, constructorArguments: [] });
+    try {
+      await hre.run("verify:verify", { address, constructorArguments: [] });
+    } catch (err) {
+      console.warn("Verification failed:", err.message || err);
+    }
   }
 }
 

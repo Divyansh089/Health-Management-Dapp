@@ -8,8 +8,9 @@
     "clean": "hardhat clean",
     "test": "hardhat test",
     "deploy:holesky": "hardhat run scripts/deploy.js --network holesky",
+    "deploy:hoodi": "hardhat run scripts/deploy.js --network hoodi",
     "export": "node scripts/export-frontend.js",
-    "deploy-and-export": "npm run deploy:holesky && npm run export"
+    "deploy-and-export": "npm run deploy:hoodi && npm run export"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",

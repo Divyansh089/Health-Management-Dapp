@@ -31,12 +31,19 @@ if (!artifactPath) {
   );
 }
 
+
 const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
 const abi = artifact.abi;
 
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, `${CONTRACT_NAME}.json`), JSON.stringify(abi, null, 2));
-fs.writeFileSync(path.join(outDir, "addresses.json"), JSON.stringify({ holesky: ADDRESS }, null, 2));
+
+// export addresses for multiple networks - prefer hoodi when available
+const addresses = {
+  hoodi: ADDRESS,
+  holesky: ADDRESS
+};
+fs.writeFileSync(path.join(outDir, "addresses.json"), JSON.stringify(addresses, null, 2));
 
 console.log(`Exported ABI -> app/src/abi/${CONTRACT_NAME}.json`);
 console.log(`Exported address -> app/src/abi/addresses.json`);
