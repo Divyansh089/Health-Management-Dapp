@@ -17,7 +17,7 @@ export default function Navbar() {
     { href: "#achievements", label: "Highlights" },
     { href: "#impact", label: "Impact" },
     { href: "#fees", label: "Fees" },
-    { href: "#reviews", label: "Reviews" }
+    { href: "#community", label: "Reviews" }
   ];
 
   const visitorLinks = [
@@ -35,19 +35,19 @@ export default function Navbar() {
       <nav className="nav-right">
         {onLanding
           ? landingLinks.map((link) => (
-              <a key={link.href} href={link.href} className="nav-link">
-                {link.label}
-              </a>
-            ))
+            <a key={link.href} href={link.href} className="nav-link">
+              {link.label}
+            </a>
+          ))
           : visitorLinks.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-              >
-                {link.label}
-              </NavLink>
-            ))}
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+            >
+              {link.label}
+            </NavLink>
+          ))}
         <ConnectButton showRole={false} variant={onLanding ? "secondary" : "primary"} />
       </nav>
     </header>
