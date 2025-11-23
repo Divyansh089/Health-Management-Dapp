@@ -38,14 +38,11 @@ export default function PatientChats() {
     queryKey: ["chat", "messages", selectedChatId],
     enabled: !!selectedChatId && !!readonlyContract,
     queryFn: async () => {
-      console.log("[PatientChats] Fetching messages for chat:", selectedChatId);
       const result = await fetchChatMessages(readonlyContract, selectedChatId);
-      console.log("[PatientChats] Fetched messages result:", result);
       return result;
     },
-    refetchInterval: 15000,
-    retry: 3,
-    retryDelay: 2000,
+    retry: 2,
+    retryDelay: 1000,
     onError: (error) => {
       console.error("[PatientChats] Message query error:", error);
       setToast({ type: "error", message: `Failed to load messages: ${error.message}` });
@@ -140,8 +137,11 @@ export default function PatientChats() {
 
       <div className="chat-layout">
         <aside className="chat-sidebar">
-          <section>
-            <h3>Your Chats</h3>
+          <section className="chat-sidebar-section">
+            <div className="chat-sidebar-header">
+              <h3>💬 Your Doctors</h3>
+              <span className="badge">{chats.length}</span>
+            </div>
             {chats.length === 0 ? (
               <p className="chat-sidebar-empty">
                 Your doctor will start a chat before each appointment. Once it appears here you can reply in real time.
@@ -153,20 +153,32 @@ export default function PatientChats() {
                   const label = doctor?.displayName
                     ? `Dr. ${doctor.displayName}`
                     : doctor?.humanId || formatEntityId("DOC", chat.doctorId);
+                  const isActive = selectedChatId === chat.id;
+                  const doctorId = doctor?.humanId || `DOC-${chat.doctorId}`;
+                  const specialty = doctor?.specialty || "General Practice";
+                  
                   return (
                     <li key={chat.id}>
                       <button
                         type="button"
-                        className={`chat-session-btn ${selectedChatId === chat.id ? "active" : ""}`}
+                        className={`chat-session-btn ${isActive ? "active" : ""}`}
                         onClick={() => setSelectedChatId(chat.id)}
                       >
-                        <strong>{label}</strong>
-                        <span>{formatDate(chat.createdAt)}</span>
-                        {!chat.closed ? (
-                          <span className="chat-session-pill">Open</span>
-                        ) : (
-                          <span className="chat-session-pill closed">Closed</span>
-                        )}
+                        <div className="session-avatar doctor-avatar">
+                          {label.replace('Dr. ', '').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="session-info">
+                          <div className="session-name-row">
+                            <strong className="session-name">{label}</strong>
+                            {!chat.closed ? (
+                              <span className="chat-session-pill open">Active</span>
+                            ) : (
+                              <span className="chat-session-pill closed">Closed</span>
+                            )}
+                          </div>
+                          <span className="session-specialty">🩺 {specialty}</span>
+                          <span className="session-date">💬 Started {formatDate(chat.createdAt)}</span>
+                        </div>
                       </button>
                     </li>
                   );
@@ -184,6 +196,7 @@ export default function PatientChats() {
               messages={messages}
               currentAccount={account}
               peerLabel={peerLabel}
+              peerAvatar={true}
               metadata={{
                 appointmentId: activeChat.appointmentId,
                 patientId: activeChat.patientId,
@@ -201,7 +214,7 @@ export default function PatientChats() {
             />
           ) : (
             <div className="chat-empty-state panel">
-              <h3>No chat selected</h3>
+              <h3>💬 No chat selected</h3>
               <p>When a doctor opens a consultation chat it will appear here. Select it to reply and share details.</p>
             </div>
           )}

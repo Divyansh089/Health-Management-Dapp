@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
 import SelectField from "../../../components/Forms/SelectField.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
+import WarningModal from "../../../components/Modals/WarningModal.jsx";
 import DoctorStrip from "../../../components/Cards/DoctorStrip.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
@@ -16,6 +17,7 @@ export default function BookAppointment() {
   const queryClient = useQueryClient();
   const { role, patientId, signerContract, readonlyContract } = useWeb3();
   const [toast, setToast] = useState(null);
+  const [warning, setWarning] = useState(null);
 
   const isPatient = role === ROLES.PATIENT;
 
@@ -87,6 +89,69 @@ export default function BookAppointment() {
         </div>
       </header>
 
+      {/* Booking Form Section */}
+      <section className="panel">
+        <h3>Book Your Appointment</h3>
+        <form
+          className="form-grid"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            const doctorId = form.get("doctorId");
+            const startTime = form.get("start") ? new Date(form.get("start")) : null;
+            if (!startTime || Number.isNaN(startTime.getTime())) {
+              setWarning({
+                title: "Invalid Date/Time",
+                message: "Please choose a valid date and time for your appointment."
+              });
+              return;
+            }
+            
+            // Ensure appointment is at least 5 minutes in the future
+            const now = new Date();
+            const minFutureTime = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes from now
+            if (startTime <= minFutureTime) {
+              setWarning({
+                title: "Appointment Time Invalid",
+                message: "Your appointment must be scheduled at least 5 minutes in the future. The blockchain will reject appointments in the past or too close to the current time. Please select a later date and time."
+              });
+              return;
+            }
+            
+            const startAt = Math.floor(startTime.getTime() / 1000);
+            bookAppointment.mutate({ doctorId, startAt });
+            event.currentTarget.reset();
+          }}
+        >
+          <SelectField
+            name="doctorId"
+            label="Doctor"
+            options={doctorOptions}
+            required
+            placeholder={doctorOptions.length ? "Select doctor" : "No approved doctors available"}
+          />
+          <InputField
+            name="start"
+            label="Start Time"
+            type="datetime-local"
+            required
+            min={(() => {
+              const now = new Date();
+              now.setMinutes(now.getMinutes() + 10);
+              return now.toISOString().slice(0, 16);
+            })()}
+            helper={
+              feeQuery.isLoading
+                ? "Fetching fee…"
+                : `Appointment fee: ${feeQuery.data?.eth.toFixed(4)} ETH. Select future date/time.`
+            }
+          />
+          <button type="submit" className="primary-btn" disabled={bookAppointment.isPending}>
+            {bookAppointment.isPending ? "Booking…" : "Book Appointment"}
+          </button>
+        </form>
+      </section>
+
       {/* Doctor List Section */}
       {doctorsQuery.isLoading ? (
         <section className="panel">
@@ -107,48 +172,14 @@ export default function BookAppointment() {
         </section>
       )}
 
-      {/* Booking Form Section */}
-      <section className="panel">
-        <h3>Book Your Appointment</h3>
-        <form
-          className="form-grid"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const form = new FormData(event.currentTarget);
-            const doctorId = form.get("doctorId");
-            const startTime = form.get("start") ? new Date(form.get("start")) : null;
-            if (!startTime || Number.isNaN(startTime.getTime())) {
-              setToast({ type: "error", message: "Please choose a valid date/time." });
-              return;
-            }
-            const startAt = Math.floor(startTime.getTime() / 1000);
-            bookAppointment.mutate({ doctorId, startAt });
-            event.currentTarget.reset();
-          }}
-        >
-          <SelectField
-            name="doctorId"
-            label="Doctor"
-            options={doctorOptions}
-            required
-            placeholder={doctorOptions.length ? "Select doctor" : "No approved doctors available"}
-          />
-          <InputField
-            name="start"
-            label="Start Time"
-            type="datetime-local"
-            required
-            helper={
-              feeQuery.isLoading
-                ? "Fetching fee…"
-                : `Appointment fee: ${feeQuery.data?.eth.toFixed(4)} ETH`
-            }
-          />
-          <button type="submit" className="primary-btn" disabled={bookAppointment.isPending}>
-            {bookAppointment.isPending ? "Booking…" : "Book Appointment"}
-          </button>
-        </form>
-      </section>
+      {warning && (
+        <WarningModal
+          open={true}
+          title={warning.title}
+          message={warning.message}
+          onClose={() => setWarning(null)}
+        />
+      )}
 
       {toast && (
         <Toast

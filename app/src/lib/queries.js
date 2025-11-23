@@ -352,9 +352,21 @@ export async function fetchChatMessages(contract, chatId) {
       filterAddress: filter.address 
     });
     
-    const provider = contract.provider;
+    let provider = contract.provider;
     if (!provider) {
-      console.error("[fetchChatMessages] No provider available");
+      console.warn("[fetchChatMessages] Contract has no provider, attempting to use contract.runner");
+      provider = contract.runner;
+    }
+    if (!provider) {
+      console.error("[fetchChatMessages] No provider available - contract.provider and contract.runner are both null");
+      console.debug("[fetchChatMessages] Contract details:", {
+        hasTarget: !!contract.target,
+        hasAddress: !!contract.address,
+        hasInterface: !!contract.interface,
+        hasProvider: !!contract.provider,
+        hasRunner: !!contract.runner,
+        contractKeys: Object.keys(contract)
+      });
       return [];
     }
 
@@ -429,14 +441,20 @@ export async function fetchChatMessages(contract, chatId) {
 
     // Parse the events
     const events = [];
-    for (const log of logs) {
+    for (let logIndex = 0; logIndex < logs.length; logIndex++) {
+      const log = logs[logIndex];
       try {
         const event = contract.interface.parseLog(log);
+        // Attach log metadata to the event
+        event.transactionHash = log.transactionHash;
+        event.logIndex = log.index !== undefined ? log.index : logIndex; // Use log.index or fallback to array index
+        event.blockNumber = log.blockNumber;
         events.push(event);
         console.debug("[fetchChatMessages] Parsed event", { 
           chatId, 
           transactionHash: log.transactionHash,
-          logIndex: log.logIndex,
+          logIndex: event.logIndex,
+          logProperties: Object.keys(log),
           eventArgs: event.args 
         });
       } catch (parseError) {
@@ -452,13 +470,37 @@ export async function fetchChatMessages(contract, chatId) {
 
     // Process messages with improved error handling
     const messages = [];
+    const seenIds = new Set(); // Track unique message IDs to prevent duplicates
+    
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
       const { chatId: idArg, sender, messageCid, timestamp } = event.args || {};
       
+      // Skip events with missing critical data
+      if (!sender || !messageCid) {
+        console.warn("[fetchChatMessages] Skipping event with missing data", { 
+          chatId, 
+          hasSender: !!sender, 
+          hasMessageCid: !!messageCid,
+          eventArgs: event.args 
+        });
+        continue;
+      }
+      
+      // Generate unique ID from transaction hash and log index
+      const messageId = `${event.transactionHash}-${event.logIndex}`;
+      
+      // Skip duplicates
+      if (seenIds.has(messageId)) {
+        console.warn("[fetchChatMessages] Skipping duplicate message", { chatId, messageId });
+        continue;
+      }
+      seenIds.add(messageId);
+      
       console.debug("[fetchChatMessages] Processing event", { 
         chatId, 
         eventIndex: i, 
+        messageId,
         sender, 
         messageCid, 
         timestamp: toNumber(timestamp),
@@ -487,7 +529,7 @@ export async function fetchChatMessages(contract, chatId) {
       }
       
       const message = {
-        id: `${event.transactionHash}-${event.logIndex}`,
+        id: messageId,
         chatId: toNumber(idArg),
         sender: sender?.toLowerCase?.() || sender,
         cid: messageCid,

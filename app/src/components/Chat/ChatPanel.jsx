@@ -15,6 +15,15 @@ function resolveText(payload) {
   return null;
 }
 
+function getInitials(name) {
+  if (!name) return "?";
+  const parts = name.split(" ");
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+}
+
 function debugMessage(message, index) {
   console.debug(`[ChatPanel] Message ${index}:`, {
     id: message.id,
@@ -34,6 +43,7 @@ export default function ChatPanel({
   messages,
   currentAccount,
   peerLabel,
+  peerAvatar,
   metadata,
   onSend,
   sending = false,
@@ -48,8 +58,8 @@ export default function ChatPanel({
 
   const normalizedMessages = useMemo(() => {
     const msgArray = messages || [];
-    console.debug("[ChatPanel] Processing messages", { 
-      messageCount: msgArray.length, 
+    console.debug("[ChatPanel] Processing messages", {
+      messageCount: msgArray.length,
       currentAccount,
       messages: msgArray.map((msg, idx) => {
         debugMessage(msg, idx);
@@ -81,9 +91,16 @@ export default function ChatPanel({
   return (
     <div className="chat-panel">
       <header className="chat-panel-header">
-        <div>
-          <h3>{title}</h3>
-          {subtitle && <p>{subtitle}</p>}
+        <div className="chat-header-info">
+          {peerAvatar && (
+            <div className="chat-header-avatar">
+              {getInitials(peerLabel || title)}
+            </div>
+          )}
+          <div>
+            <h3>{title}</h3>
+            {subtitle && <p>{subtitle}</p>}
+          </div>
         </div>
         <div className="chat-panel-status">
           <span className={`chat-status-dot ${closed ? "closed" : "open"}`} />
@@ -125,7 +142,7 @@ export default function ChatPanel({
             const text = resolveText(message.payload);
             const fallbackText = text || `Message CID: ${message.cid}`;
             const isSelf = currentAccount && message.sender && message.sender.toLowerCase() === currentAccount.toLowerCase();
-            
+
             console.debug(`[ChatPanel] Rendering message ${index}:`, {
               messageId: message.id,
               sender: message.sender,
@@ -135,7 +152,7 @@ export default function ChatPanel({
               text: text || 'NO TEXT',
               fallbackText
             });
-            
+
             return (
               <article
                 key={message.id}
@@ -146,10 +163,6 @@ export default function ChatPanel({
                   <time>{formatDate(message.createdAt)}</time>
                 </div>
                 <p>{fallbackText}</p>
-                {/* Debug info - remove in production */}
-                <small style={{ opacity: 0.5, fontSize: '10px' }}>
-                  ID: {message.id} | Sender: {message.sender} | CID: {message.cid}
-                </small>
               </article>
             );
           })

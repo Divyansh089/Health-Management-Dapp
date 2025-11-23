@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ChatPanel from "../../../components/Chat/ChatPanel.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
-import MessageDebugger from "../../../components/Debug/MessageDebugger.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
 import {
@@ -45,14 +44,11 @@ export default function DoctorChats() {
     queryKey: ["chat", "messages", selectedChatId],
     enabled: !!selectedChatId && !!readonlyContract,
     queryFn: async () => {
-      console.log("[DoctorChats] Fetching messages for chat:", selectedChatId);
       const result = await fetchChatMessages(readonlyContract, selectedChatId);
-      console.log("[DoctorChats] Fetched messages result:", result);
       return result;
     },
-    refetchInterval: 15000,
-    retry: 3,
-    retryDelay: 2000,
+    retry: 2,
+    retryDelay: 1000,
     onError: (error) => {
       console.error("[DoctorChats] Message query error:", error);
       setToast({ type: "error", message: `Failed to load messages: ${error.message}` });
@@ -62,37 +58,9 @@ export default function DoctorChats() {
   // Manual refresh function
   const refreshMessages = async () => {
     if (selectedChatId) {
-      console.log("[DoctorChats] Manual refresh triggered for chat:", selectedChatId);
       await queryClient.invalidateQueries({ queryKey: ["chat", "messages", selectedChatId] });
-      await messagesQuery.refetch();
     }
   };
-
-  useEffect(() => {
-    console.debug("[chat] messages query state", {
-      selectedChatId,
-      status: messagesQuery.status,
-      isFetching: messagesQuery.isFetching,
-      isFetched: messagesQuery.isFetched,
-      messageCount: messagesQuery.data?.length || 0,
-      error: messagesQuery.error,
-      account: account,
-      chatId: selectedChatId
-    });
-    
-    // Log detailed message data for debugging
-    if (messagesQuery.data?.length > 0) {
-      console.debug("[chat] message details", messagesQuery.data.map(msg => ({
-        id: msg.id,
-        sender: msg.sender,
-        currentAccount: account,
-        isSelf: account && msg.sender === account.toLowerCase(),
-        hasPayload: !!msg.payload,
-        createdAt: msg.createdAt,
-        cid: msg.cid
-      })));
-    }
-  }, [messagesQuery.status, messagesQuery.isFetching, messagesQuery.isFetched, messagesQuery.data, messagesQuery.error, selectedChatId, account]);
 
   useEffect(() => {
     if (!chatListQuery.data?.length) return;
@@ -207,13 +175,14 @@ export default function DoctorChats() {
   const chats = chatListQuery.data || [];
   const messages = messagesQuery.data || [];
 
-  const availableAppointments = useMemo(
-    () =>
-      appointments
-        .filter((appt) => appt.open && !appt.chatId)
-        .sort((a, b) => a.startAt - b.startAt),
-    [appointments]
-  );
+  const availableAppointments = useMemo(() => {
+    // Get all chatted appointment IDs
+    const chattedAppointmentIds = new Set(chats.map(chat => chat.appointmentId));
+
+    return appointments
+      .filter((appt) => appt.open && !chattedAppointmentIds.has(appt.id))
+      .sort((a, b) => a.startAt - b.startAt);
+  }, [appointments, chats]);
 
   const patientLookup = useMemo(() => {
     const map = {};
@@ -226,8 +195,8 @@ export default function DoctorChats() {
   const activeChat = chats.find((chat) => chat.id === selectedChatId) || null;
   const peerLabel = activeChat
     ? patientLookup[activeChat.patientId]?.displayName ||
-      patientLookup[activeChat.patientId]?.humanId ||
-      formatEntityId("PAT", activeChat.patientId)
+    patientLookup[activeChat.patientId]?.humanId ||
+    formatEntityId("PAT", activeChat.patientId)
     : "Patient";
 
   return (
@@ -241,11 +210,12 @@ export default function DoctorChats() {
 
       <div className="chat-layout">
         <aside className="chat-sidebar">
-          <section>
-            <h3>Upcoming Appointments</h3>
-            {availableAppointments.length === 0 ? (
-              <p className="chat-sidebar-empty">No pending appointments without chat.</p>
-            ) : (
+          {availableAppointments.length > 0 && (
+            <section className="chat-sidebar-section">
+              <div className="chat-sidebar-header">
+                <h3>🗓️ Upcoming Appointments</h3>
+                <span className="badge">{availableAppointments.length}</span>
+              </div>
               <ul className="chat-appointment-list">
                 {availableAppointments.map((appointment) => {
                   const patient = patientLookup[appointment.patientId];
@@ -255,9 +225,12 @@ export default function DoctorChats() {
                     formatEntityId("PAT", appointment.patientId);
                   return (
                     <li key={appointment.id} className="chat-appointment-item">
-                      <div>
-                        <strong>{label}</strong>
-                        <span>{formatDate(appointment.startAt * 1000)}</span>
+                      <div className="appointment-info">
+                        <div className="patient-avatar">{label.charAt(0).toUpperCase()}</div>
+                        <div className="appointment-details">
+                          <strong className="patient-name">{label}</strong>
+                          <span className="appointment-time">📅 {formatDate(appointment.startAt * 1000)}</span>
+                        </div>
                       </div>
                       <button
                         type="button"
@@ -276,13 +249,16 @@ export default function DoctorChats() {
                   );
                 })}
               </ul>
-            )}
-          </section>
+            </section>
+          )}
 
-          <section>
-            <h3>Active Chats</h3>
+          <section className="chat-sidebar-section">
+            <div className="chat-sidebar-header">
+              <h3>💬 All Patients</h3>
+              <span className="badge">{chats.length}</span>
+            </div>
             {chats.length === 0 ? (
-              <p className="chat-sidebar-empty">No chat sessions yet.</p>
+              <p className="chat-sidebar-empty">Start a chat with a patient from upcoming appointments.</p>
             ) : (
               <ul className="chat-session-list">
                 {chats.map((chat) => {
@@ -291,20 +267,31 @@ export default function DoctorChats() {
                     patient?.displayName ||
                     patient?.humanId ||
                     formatEntityId("PAT", chat.patientId);
+                  const isActive = selectedChatId === chat.id;
+                  const patientId = patient?.humanId || `PAT-${chat.patientId}`;
+                  
                   return (
                     <li key={chat.id}>
                       <button
                         type="button"
-                        className={`chat-session-btn ${selectedChatId === chat.id ? "active" : ""}`}
+                        className={`chat-session-btn ${isActive ? "active" : ""}`}
                         onClick={() => setSelectedChatId(chat.id)}
                       >
-                        <strong>{label}</strong>
-                        <span>{formatDate(chat.createdAt)}</span>
-                        {!chat.closed ? (
-                          <span className="chat-session-pill">Open</span>
-                        ) : (
-                          <span className="chat-session-pill closed">Closed</span>
-                        )}
+                        <div className="session-avatar patient-avatar">
+                          {label.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="session-info">
+                          <div className="session-name-row">
+                            <strong className="session-name">{label}</strong>
+                            {!chat.closed ? (
+                              <span className="chat-session-pill open">Active</span>
+                            ) : (
+                              <span className="chat-session-pill closed">Closed</span>
+                            )}
+                          </div>
+                          <span className="session-id">{patientId}</span>
+                          <span className="session-date">💬 Started {formatDate(chat.createdAt)}</span>
+                        </div>
                       </button>
                     </li>
                   );
@@ -316,57 +303,31 @@ export default function DoctorChats() {
 
         <div className="chat-main">
           {activeChat ? (
-            <div>
-              {/* Debug and refresh controls */}
-              <div style={{ padding: '10px', borderBottom: '1px solid #eee', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <button 
-                  onClick={refreshMessages}
-                  style={{ padding: '5px 10px', fontSize: '12px' }}
-                  disabled={messagesQuery.isFetching}
-                >
-                  {messagesQuery.isFetching ? 'Refreshing...' : 'Refresh Messages'}
-                </button>
-                <span style={{ fontSize: '12px', color: '#666' }}>
-                  Status: {messagesQuery.status} | Messages: {messages.length} | Loading: {messagesQuery.isFetching ? 'Yes' : 'No'}
-                </span>
-                <span style={{ fontSize: '12px', color: '#666' }}>
-                  Chat ID: {selectedChatId} | Account: {account ? `${account.substring(0, 6)}...${account.substring(account.length - 4)}` : 'None'}
-                </span>
-                {messagesQuery.error && (
-                  <span style={{ fontSize: '12px', color: 'red' }}>
-                    Error: {messagesQuery.error.message}
-                  </span>
-                )}
-              </div>
-              
-              {/* Add debugger component */}
-              <MessageDebugger chatId={selectedChatId} />
-              
-              <ChatPanel
-                title={`Chat with ${peerLabel}`}
-                subtitle={`Started ${formatDate(activeChat.createdAt)}`}
-                messages={messages}
-                currentAccount={account}
-                peerLabel={peerLabel}
-                metadata={{
-                  appointmentId: activeChat.appointmentId,
-                  patientId: activeChat.patientId,
-                  doctorId: activeChat.doctorId,
-                  createdAt: activeChat.createdAt,
-                  subject: activeChat.metadata?.subject,
-                  reason: activeChat.metadata?.reason
-                }}
-                onSend={(text) => sendMessageMutation.mutate({ chatId: activeChat.id, text })}
-                sending={sendMessageMutation.isPending}
-                closed={activeChat.closed}
-                canClose={!activeChat.closed}
-                onClose={() => closeChatMutation.mutate(activeChat.id)}
-              />
-            </div>
+            <ChatPanel
+              title={`Chat with ${peerLabel}`}
+              subtitle={`Started ${formatDate(activeChat.createdAt)}`}
+              messages={messages}
+              currentAccount={account}
+              peerLabel={peerLabel}
+              peerAvatar={true}
+              metadata={{
+                appointmentId: activeChat.appointmentId,
+                patientId: activeChat.patientId,
+                doctorId: activeChat.doctorId,
+                createdAt: activeChat.createdAt,
+                subject: activeChat.metadata?.subject,
+                reason: activeChat.metadata?.reason
+              }}
+              onSend={(text) => sendMessageMutation.mutate({ chatId: activeChat.id, text })}
+              sending={sendMessageMutation.isPending}
+              closed={activeChat.closed}
+              canClose={!activeChat.closed}
+              onClose={() => closeChatMutation.mutate(activeChat.id)}
+            />
           ) : (
             <div className="chat-empty-state panel">
-              <h3>Select a chat</h3>
-              <p>Choose an active chat session or start a new conversation from the left panel.</p>
+              <h3>💬 Select a chat</h3>
+              <p>Choose an active chat session or start a new conversation with a patient from the left panel.</p>
             </div>
           )}
         </div>

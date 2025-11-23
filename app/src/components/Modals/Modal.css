@@ -1,11 +1,79 @@
 .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.4);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:24px;z-index:200}
-.modal{background:#fff;border-radius:18px;padding:24px;max-width:400px;width:100%;box-shadow:0 20px 40px rgba(15,23,42,.25);display:flex;flex-direction:column;gap:16px}
+.modal{background:#fff;border-radius:18px;padding:24px;max-width:400px;width:100%;box-shadow:0 20px 40px rgba(15,23,42,.25);display:flex;flex-direction:column;gap:16px;position:relative}
 .modal h3{margin:0;font-size:1.2rem;color:#0f172a}
 .modal p{margin:0;color:#475569;line-height:1.5}
 .modal-actions{display:flex;justify-content:flex-end;gap:12px}
 .modal-cancel{padding:8px 14px;border-radius:10px;border:1px solid rgba(15,23,42,.15);background:#fff;font-weight:600;cursor:pointer}
 .modal-confirm{padding:8px 14px;border-radius:10px;border:none;background:#ef4444;color:#fff;font-weight:600;cursor:pointer}
 .modal-confirm:disabled,.modal-cancel:disabled{opacity:.6;cursor:not-allowed}
+
+/* Warning Modal Styles */
+.warning-modal {
+  max-width: 500px;
+  text-align: center;
+}
+
+.modal-close-x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #64748b;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.modal-close-x:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.warning-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.warning-modal h3 {
+  color: #dc2626;
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+}
+
+.warning-message {
+  font-size: 1.05rem;
+  color: #374151;
+  line-height: 1.6;
+  margin: 16px 0;
+}
+
+.warning-ok {
+  background: #ef4444;
+  width: 120px;
+  padding: 10px 20px;
+  font-size: 1rem;
+}
+
+.warning-ok:hover {
+  background: #dc2626;
+}
 
 /* Doctor Profile Modal Styles */
 .modal-overlay {
