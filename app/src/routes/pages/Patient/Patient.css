@@ -53,6 +53,14 @@
   background: rgba(30, 136, 229, 0.1);
 }
 
+/* Doctors list in booking page */
+.doctors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
 @media (max-width:768px){
   .page{padding:20px}
   .panel{padding:20px}

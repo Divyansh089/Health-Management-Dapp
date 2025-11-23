@@ -111,7 +111,7 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
             name: actualData.name || 'Unknown Doctor',
             specialty: actualData.specialties ? actualData.specialties.join(', ') : 'Not specified',
             qualification: actualData.degrees ? actualData.degrees.join(', ') : 'Medical Professional',
-            experience: actualData.experienceYears ? `${actualData.experienceYears} years` : (actualData.experience ? `${actualData.experience} years` : 'Not specified'),
+            experience: (actualData.experienceYears !== undefined && actualData.experienceYears !== null && actualData.experienceYears !== '') ? `${actualData.experienceYears} years` : 'Not specified',
             hospital: 'Healthcare Provider', // Could be enhanced with actual hospital data
             phone: 'Contact via platform', // For privacy
             email: actualData.contact?.email || 'Not provided',
@@ -290,14 +290,16 @@ export default function DoctorProfileModal({ doctor, isOpen, onClose }) {
                   <div className="availability-grid">
                     {profileData.availability?.length > 0 ? (
                       profileData.availability.map((slot, index) => {
-                        // Handle different availability formats
-                        const day = slot.day || slot.dayOfWeek || `Day ${index + 1}`;
+                        // Handle availability format: { days: ["Mon", "Tue"], from: "09:00", to: "17:00" }
+                        const daysText = slot.days && Array.isArray(slot.days) && slot.days.length > 0 
+                          ? slot.days.join(', ') 
+                          : (slot.day || slot.dayOfWeek || `Schedule ${index + 1}`);
                         const timeText = slot.time || 
                                        (slot.from && slot.to ? `${slot.from} - ${slot.to}` : null) ||
                                        (slot.startTime && slot.endTime ? `${slot.startTime} - ${slot.endTime}` : null);
                         return (
                           <div key={index} className="availability-item">
-                            <strong>{day}:</strong>
+                            <strong>{daysText}:</strong>
                             <span>{timeText || 'Available'}</span>
                           </div>
                         );

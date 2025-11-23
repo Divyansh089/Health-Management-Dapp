@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import InputField from "../../../components/Forms/InputField.jsx";
 import SelectField from "../../../components/Forms/SelectField.jsx";
 import Toast from "../../../components/Toast/Toast.jsx";
+import DoctorStrip from "../../../components/Cards/DoctorStrip.jsx";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
 import { ROLES } from "../../../lib/constants.js";
 import { fetchDoctors } from "../../../lib/queries.js";
@@ -70,9 +71,10 @@ export default function BookAppointment() {
     doctorsQuery.data?.map((doctor) => {
       const name = doctor.displayName?.trim?.();
       const labelName = name && name.length ? name : doctor.humanId || formatEntityId("DOC", doctor.id);
+      const docId = formatEntityId("DOC", doctor.id);
       return {
         value: doctor.id,
-        label: `${labelName} (${doctor.account.slice(0, 6)}…)`
+        label: `${labelName} (${docId})`
       };
     }) || [];
 
@@ -85,7 +87,29 @@ export default function BookAppointment() {
         </div>
       </header>
 
+      {/* Doctor List Section */}
+      {doctorsQuery.isLoading ? (
+        <section className="panel">
+          <p>Loading doctors...</p>
+        </section>
+      ) : doctorsQuery.data && doctorsQuery.data.length > 0 ? (
+        <section className="panel">
+          <h3>Available Doctors</h3>
+          <div className="doctors-list">
+            {doctorsQuery.data.map((doctor) => (
+              <DoctorStrip key={doctor.id} doctor={doctor} />
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section className="panel">
+          <p>No approved doctors available at the moment.</p>
+        </section>
+      )}
+
+      {/* Booking Form Section */}
       <section className="panel">
+        <h3>Book Your Appointment</h3>
         <form
           className="form-grid"
           onSubmit={(event) => {
