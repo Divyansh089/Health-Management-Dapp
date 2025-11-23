@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWeb3 } from "../../../state/Web3Provider.jsx";
-import { fetchAllAppointments, fetchAllPrescriptions, fetchDoctors, fetchMedicines } from "../../../lib/queries.js";
+import { fetchAllAppointments, fetchAllPrescriptions, fetchDoctors, fetchMedicines, formatEther as formatEtherValue } from "../../../lib/queries.js";
 import "./Admin.css";
 
 // Tiny inline sparkline renderer (no external libs)
@@ -324,16 +324,98 @@ export default function AdminDashboard() {
     enabled: !!readonlyContract,
     queryFn: async () => {
       if (!readonlyContract) return null;
+
+      const toBigInt = (value) => {
+        if (typeof value === "bigint") return value;
+        if (!value && value !== 0) return 0n;
+        if (typeof value === "number") return BigInt(Math.trunc(value));
+        if (typeof value === "string") {
+          try {
+            return BigInt(value);
+          } catch {
+            return 0n;
+          }
+        }
+        if (typeof value === "object") {
+          if (typeof value.toBigInt === "function") {
+            try {
+              return value.toBigInt();
+            } catch {
+              return 0n;
+            }
+          }
+          if ("_hex" in value && typeof value._hex === "string") {
+            try {
+              return BigInt(value._hex);
+            } catch {
+              return 0n;
+            }
+          }
+        }
+        return 0n;
+      };
+
+      const mapRevenueHistory = (history = []) => {
+        if (!Array.isArray(history) || history.length === 0) return [];
+        return history.map((point) => {
+            const rawDay = point?.day ?? point?.[0] ?? 0;
+            const dayNumber =
+              typeof rawDay === "number"
+                ? rawDay
+                : typeof rawDay === "bigint"
+                ? Number(rawDay)
+                : parseInt(rawDay || "0", 10);
+            const dayTs = Number.isFinite(dayNumber) ? dayNumber * 86400 : 0;
+            const rawAmount = point?.amountWei ?? point?.[1] ?? 0;
+            const amountWei = toBigInt(rawAmount);
+            const date = new Date(dayTs * 1000);
+            const label = Number.isFinite(date.getTime())
+              ? date.toISOString().slice(5, 10)
+              : `Day ${dayNumber}`;
+            return {
+              t: label,
+              v: formatEtherValue(amountWei)
+            };
+          });
+      };
+
+      try {
+        if (
+          typeof readonlyContract.totalRevenueWei === "function" &&
+          typeof readonlyContract.getRevenueHistory === "function"
+        ) {
+          const [totalRevenueWeiRaw, revenueHistory] = await Promise.all([
+            readonlyContract.totalRevenueWei().catch(() => 0n),
+            readonlyContract.getRevenueHistory(30).catch(() => [])
+          ]);
+
+          const totalRevenueWei = toBigInt(totalRevenueWeiRaw);
+          const revenueSeries = mapRevenueHistory(revenueHistory);
+
+          if (revenueSeries.length || totalRevenueWei > 0n) {
+            return {
+              totalRevenueEth: formatEtherValue(totalRevenueWei),
+              revenueSeries,
+              addedSeries: [],
+              medicineAdded: 0,
+              purchases: 0
+            };
+          }
+        }
+      } catch (contractError) {
+        console.warn("Revenue history contract call failed, falling back to events", contractError);
+      }
+
       try {
         const currentBlock = await readonlyContract.provider.getBlockNumber();
-        const fromBlock = Math.max(0, currentBlock - 10000); // Last ~10k blocks
-        
+        const fromBlock = Math.max(0, currentBlock - 10000);
+
         const boughtFilter = readonlyContract.filters.MedicineBought?.();
         const addedFilter = readonlyContract.filters.MedicineAdded?.();
         const apptBookedFilter = readonlyContract.filters.AppointmentBooked?.();
         const docRegFilter = readonlyContract.filters.DoctorRegistered?.();
         const patRegFilter = readonlyContract.filters.PatientRegistered?.();
-        
+
         const [bought, added, apptBooked, docRegs, patRegs] = await Promise.all([
           readonlyContract.queryFilter(boughtFilter, fromBlock).catch(() => []),
           readonlyContract.queryFilter(addedFilter, fromBlock).catch(() => []),
@@ -344,29 +426,29 @@ export default function AdminDashboard() {
 
         let revenueWei = 0n;
         const byDay = new Map();
-        
+
         for (const log of bought) {
           try {
             const block = await log.getBlock();
             const args = log.args || [];
             const paid = args?.paidWei ?? args?.[3] ?? 0n;
+            const paidWei = toBigInt(paid);
             const ts = block?.timestamp ?? Math.floor(Date.now() / 1000);
             const day = new Date(ts * 1000).toISOString().slice(0, 10);
-            revenueWei += BigInt(paid);
-            byDay.set(day, (byDay.get(day) || 0n) + BigInt(paid));
+            revenueWei += paidWei;
+            byDay.set(day, (byDay.get(day) || 0n) + paidWei);
           } catch (error) {
             console.warn("Error processing revenue event:", error);
           }
         }
 
-        // Include admin share of appointment fee: 10% of tx.value for AppointmentBooked
         for (const log of apptBooked) {
           try {
             const block = await log.getBlock();
             const txHash = log.transactionHash;
             const tx = await readonlyContract.provider.getTransaction(txHash);
-            const value = tx?.value ?? 0n;
-            const adminShare = value / 10n; // 10% to admin
+            const value = toBigInt(tx?.value ?? 0n);
+            const adminShare = value / 10n;
             if (adminShare > 0n) {
               const ts = block?.timestamp ?? Math.floor(Date.now() / 1000);
               const day = new Date(ts * 1000).toISOString().slice(0, 10);
@@ -378,14 +460,13 @@ export default function AdminDashboard() {
           }
         }
 
-        // Include self-registration fees: DoctorRegistered and PatientRegistered where tx.value > 0
         const regLogs = [...docRegs, ...patRegs];
         for (const log of regLogs) {
           try {
             const block = await log.getBlock();
             const txHash = log.transactionHash;
             const tx = await readonlyContract.provider.getTransaction(txHash);
-            const value = tx?.value ?? 0n; // Admin-triggered registrations have 0 value
+            const value = toBigInt(tx?.value ?? 0n);
             if (value > 0n) {
               const ts = block?.timestamp ?? Math.floor(Date.now() / 1000);
               const day = new Date(ts * 1000).toISOString().slice(0, 10);
@@ -409,19 +490,18 @@ export default function AdminDashboard() {
           }
         }
 
-        // Sort days and prepare series data
         const days = Array.from(new Set([...byDay.keys(), ...addedByDay.keys()])).sort();
-        const revenueSeries = days.map((d) => ({ 
-          t: d.slice(5), 
-          v: Number((byDay.get(d) || 0n) / 10n ** 14n) / 10000 // Convert to ETH with precision
+        const revenueSeries = days.map((d) => ({
+          t: d.slice(5),
+          v: formatEtherValue(byDay.get(d) || 0n),
         }));
-        const addedSeries = days.map((d) => ({ 
-          t: d.slice(5), 
-          v: addedByDay.get(d) || 0 
+        const addedSeries = days.map((d) => ({
+          t: d.slice(5),
+          v: addedByDay.get(d) || 0,
         }));
 
         return {
-          totalRevenueEth: Number(revenueWei) / 1e18,
+          totalRevenueEth: formatEtherValue(revenueWei),
           revenueSeries,
           addedSeries,
           medicineAdded: added?.length || 0,
@@ -429,7 +509,6 @@ export default function AdminDashboard() {
         };
       } catch (error) {
         console.error("Analytics query error:", error);
-        // No demo fallback: return empty/zeroed analytics
         return {
           totalRevenueEth: 0,
           revenueSeries: [],
