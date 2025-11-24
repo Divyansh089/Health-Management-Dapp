@@ -25,6 +25,7 @@ export function NotificationProvider({ children }) {
   const knownIdsRef = useRef(new Set());
 
   const addNotification = useCallback((entry) => {
+    
     if (!entry || !entry.id) return;
     const known = knownIdsRef.current;
     if (known.has(entry.id)) return;
