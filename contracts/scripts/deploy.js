@@ -8,7 +8,7 @@ async function main() {
   console.log("Healthcare deployed:", address);
 
   // optional verify on supported explorers (holesky or hoodi)
-  if ((hre.network.name === "holesky" || hre.network.name === "hoodi") && process.env.ETHERSCAN_API_KEY) {
+  if (( hre.network.name === "holesky" || hre.network.name === "hoodi") && process.env.ETHERSCAN_API_KEY) {
     console.log("Verifying on Etherscan-compatible explorer...");
     await new Promise(r => setTimeout(r, 30_000));
     try {
