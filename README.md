@@ -24,7 +24,7 @@ Smart contract backend: Contracts (in “contracts/”) define the business logi
 - `package.json` – Root workspace manager (add Hardhat & frontend tooling later)
 - `.gitignore` – Common ignores for Node/Hardhat/front-end
 
-## Next Steps (suggested)
+## Next Steps 
 
 1. Initialize Hardhat: `npm install --save-dev hardhat` then `npx hardhat`.
 2. Add a sample contract in `contracts/` (e.g., `HealthRecords.sol`).
