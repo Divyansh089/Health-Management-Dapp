@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 contract Healthcare {
-    // --- Domain data -----------------------------------------------------------------
+    // --- Domain data --------------------------------------------------------------
     struct Doctor {
         uint256 id;
         string ipfs; // profile metadata CID / URL
